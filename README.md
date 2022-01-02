@@ -8,7 +8,9 @@ Ubuntu20.04
 CUDA10.1
 
 Pytorch1.8.1
-# Successful examples
+# Existing examples
 ## Image classification
 Icron-water:https://github.com/dongdongdong1217/Detectron2-FC/tree/main/tools#readme
 
+## Object detectron
+Detectron2's own algorithm see: https://github.com/facebookresearch/detectron2/blob/main/MODEL_ZOO.md
