@@ -8,3 +8,6 @@ Ubuntu20.04
 CUDA10.1
 
 Pytorch1.8.1
+# Successful examples
+
+
