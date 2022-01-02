@@ -14,3 +14,5 @@ Icron-water:https://github.com/dongdongdong1217/Detectron2-FC/tree/main/tools#re
 
 ## Object detection and image segmentation
 Detectron2's own algorithm see: https://github.com/facebookresearch/detectron2/blob/main/MODEL_ZOO.md
+
+## Few-shot object detection
