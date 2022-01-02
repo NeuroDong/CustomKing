@@ -9,8 +9,6 @@ Icron_water.py is a Icon-water image classification task based on SE-Resnext101,
 | SE-Resnext| Resnext101 | 92.50% |
 
 
-| 水果        | 价格    |  数量  |
+| Model        | Backbone    | Accuracy  |
 | --------   | -----:   | :----: |
-| 香蕉        | $1      |   5    |
-| 苹果        | $1      |   6    |
-| 草莓        | $1      |   7    |
+| SE-Resnext        | Resnext101     |   Accuracy    |
