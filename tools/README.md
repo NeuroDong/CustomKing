@@ -6,3 +6,10 @@ Icron_water.py is a Icon-water image classification task based on SE-Resnext101,
 ![Image text](https://github.com/dongdongdong1217/Detectron2-FC/blob/main/visualizate/Visualization-diagram/Classification/Icron-water_trainloss.png)
 | Model | Backbone | Accuracy |
 | SE-Resnext| Resnext101 | 92.50% |
+
+
+| 水果        | 价格    |  数量  |
+| --------   | -----:   | :----: |
+| 香蕉        | $1      |   5    |
+| 苹果        | $1      |   6    |
+| 草莓        | $1      |   7    |
