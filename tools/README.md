@@ -6,5 +6,5 @@ Icron_water.py is a Icon-water image classification task based on SE-Resnext101,
 ![Image text](https://github.com/dongdongdong1217/Detectron2-FC/blob/main/visualizate/Visualization-diagram/Classification/Icron-water_trainloss.png)
 
 | Model        | Backbone    | Accuracy  | macron_f1_score |
-| --------   | -----:   | :----: |
+| --------   | -----:   | :----: | :----: |
 | SE-Resnext        | Resnext101     |   92.50%    |  92.51 |
