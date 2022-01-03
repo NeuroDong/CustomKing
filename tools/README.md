@@ -7,4 +7,4 @@ Icron_water.py is a Icon-water image classification task based on SE-Resnext101,
 
 | Model(SE-Resnext) | Backbone | Accuracy  | macron_f1_score | mAP |
 | :----: |  :----: | :----: | :----: | :----: |
-| 50000iters(batchsize=32) | Resnext101 |  92.50%  |  92.51 | 88.87% |
+| 50000iters(batchsize=32) | Resnext101 |  92.50%  |  92.51% | 88.87% |
