@@ -16,7 +16,10 @@ CUDA10.1
 Pytorch1.8.1
 # Existing examples
 ## Image classification
-Icron-water classification: https://github.com/dongdongdong1217/Detectron2-FC/tree/main/tools#readme
+Icron-water classification(SE-Resnext): https://github.com/dongdongdong1217/Detectron2-FC/tree/main/tools#readme
+
+## Data classification（Non image data）
+Process-data classification（Transformer）：https://github.com/dongdongdong1217/Detectron2-FC/tree/main/tools#readme
 
 ## Object detection and image segmentation
 Detectron2's own algorithm see: https://github.com/facebookresearch/detectron2/blob/main/MODEL_ZOO.md
