@@ -2,7 +2,7 @@
 from numpy.core.fromnumeric import mean
 from detectron2.data import get_detection_dataset_dicts
 from detectron2.data import build_detection_train_loader,build_detection_test_loader
-from detectron2.data.dataset_mapper import Icron_water_mapper
+from detectron2.data.dataset_mapper import process_data_mapper
 from detectron2.config import get_cfg
 from detectron2.modeling import build_model
 from detectron2.solver import build_lr_scheduler, build_optimizer
@@ -12,6 +12,9 @@ from sklearn.metrics import f1_score,average_precision_score
 import numpy as np
 import torch
 from tqdm import tqdm
+import os
+
+
 
 import detectron2.utils.comm as comm
 from detectron2.engine import default_writers
@@ -21,7 +24,7 @@ from detectron2.utils.events import EventStorage
 def do_test(cfg, model):
       #导入数据
       dataset = get_detection_dataset_dicts(cfg.DATASETS.TEST)
-      test_data = build_detection_test_loader(dataset,mapper=Icron_water_mapper)
+      test_data = build_detection_test_loader(dataset,mapper=process_data_mapper)
       model.eval()
       result_list = []
       label_list = []
@@ -29,7 +32,7 @@ def do_test(cfg, model):
             inference_result = model(data).cpu().detach().numpy()
             result = np.where(inference_result[0]==max(inference_result[0]))
             result_list.append(result[0][0])
-            label_list.append(int(float(data[0]["label"])))
+            label_list.append(int(float(data[0]["y"])))
       correct = 0
       for i in range(0,len(label_list),1):
             if result_list[i] == label_list[i]:
@@ -74,12 +77,13 @@ def do_train(cfg, model, resume=False):
 
       #---------------------------导入数据--------------------------------#
       dataset = get_detection_dataset_dicts(cfg.DATASETS.TRAIN)
-      train_data = build_detection_train_loader(dataset,mapper=Icron_water_mapper,total_batch_size=cfg.IMS_PER_BATCH)
+      train_data = build_detection_train_loader(dataset,mapper=process_data_mapper,total_batch_size=cfg.IMS_PER_BATCH)
 
       with EventStorage(start_iter) as storage:
             for data, iteration in zip(train_data, range(start_iter, max_iter)):
                   storage.iter = iteration
                   loss = model(data)
+                  
                   #---------------------更新权值---------------------#
                   optimizer.zero_grad()
                   loss.backward()
@@ -98,17 +102,19 @@ def do_train(cfg, model, resume=False):
 
 
 def main():
+      os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
       #--------------------设置配置参数-----------------------------#
       cfg = get_cfg() 
-      cfg.MODEL.META_ARCHITECTURE = "se_resnext_101" #网络模型
-      cfg.NUM_CLASSES = 10 #类别数
-      cfg.DATASETS.TRAIN = "IcronWater2021_trainval" #训练数据集
-      cfg.DATASETS.TEST = "IcronWater2021_test" #测试数据集
+      cfg.MODEL.META_ARCHITECTURE = "Transformer_cls" #网络模型
+      cfg.src_vocab_size = 1001 #输入字典的长度
+      cfg.tgt_vocab_size = 10 #输出字典的长度
+      cfg.DATASETS.TRAIN = "process_data_trainval" #训练数据集
+      cfg.DATASETS.TEST = "process_data_test" #测试数据集
       cfg.JUST_EVAL = True #是否只是评估
       cfg.PRE_WEIGHT = False #是否加载与训练权重
       cfg.IMS_PER_BATCH = 32 #batchsize
       cfg.SOLVER.MAX_ITER = 100000 #训练最大iters
-      cfg.OUTPUT_DIR = "output/classification/icron_water2021"
+      cfg.OUTPUT_DIR = "output/classification/process_data"
       cfg.CUDNN_BENCHMARK = True
       print(cfg)
 
@@ -116,9 +122,10 @@ def main():
       #-------------------------建立网络模型------------------------------#
       model = build_model(cfg)
 
+
       #---------------------训练与测试------------------------------------#
       if cfg.JUST_EVAL:
-            DetectionCheckpointer(model).load("output/classification/icron_water2021/model_0019999.pth")#加载权值
+            DetectionCheckpointer(model).load("output/classification/process_data/model_0004999.pth")#加载权值
             do_test(cfg,model)
       else:
             if cfg.PRE_WEIGHT:

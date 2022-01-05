@@ -12,5 +12,6 @@ from .retinanet import RetinaNet
 from .fcos import FCOS
 from .semantic_seg import SEM_SEG_HEADS_REGISTRY, SemanticSegmentor, build_sem_seg_head
 from .SE_Resnext import se_resnext_50,se_resnext_101,se_resnext_152
+from .Transformer_cls import Transformer_cls
 
 __all__ = list(globals().keys())

@@ -32,6 +32,7 @@ from .pascal_voc import register_pascal_voc
 
 #自己加上的用于分类任务的数据加载程序
 from .classification.icron_water import register_icron_water
+from .classification.process_data import register_process_data
 
 #自己加上的用于小样本目标检测的数据加载程序
 from .fsdet.meta_coco import register_meta_coco
@@ -377,7 +378,12 @@ def register_all_icron_water(root):
     names = ["icron_water_trainval",
             "icron_water_train",
             "icron_water_val",
-            "icron_water_test"]
+            "icron_water_test",
+            "IcronWater2021_trainval",
+            "IcronWater2021_train",
+            "IcronWater2021_val",
+            "IcronWater2021_test"
+            ]
 
     for name in names:
         if name=="icron_water_trainval":
@@ -393,8 +399,40 @@ def register_all_icron_water(root):
         if name == "icron_water_test":
             dirnames = [os.path.join(root,"icron_water/test")]
             register_icron_water(name,dirnames)
+        if name == "IcronWater2021_trainval":
+            dirnames = [os.path.join(root,"IcronWater2021/train"),
+                        os.path.join(root,"IcronWater2021/val")]
+            register_icron_water(name,dirnames)
+        if name == "IcronWater2021_train":
+            dirnames = [os.path.join(root,"IcronWater2021/train")]
+            register_icron_water(name,dirnames)
+        if name == "IcronWater2021_val":
+            dirnames = [os.path.join(root,"IcronWater2021/val")]
+            register_icron_water(name,dirnames)
+        if name == "IcronWater2021_test":
+            dirnames = [os.path.join(root,"IcronWater2021/test")]
+            register_icron_water(name,dirnames)
     
+def register_all_process_data(root):
+    names = ["process_data_trainval",
+            "process_data_train",
+            "process_data_val",
+            "process_data_test"]
 
+    for name in names:
+        if name=="process_data_trainval":
+            dirnames = [os.path.join(root,"process_data/train"),
+                        os.path.join(root,"process_data/val")]
+            register_process_data(name,dirnames)
+        if name == "process_data_train":
+            dirnames = [os.path.join(root,"process_data/train")]
+            register_process_data(name,dirnames)
+        if name == "process_data_val":
+            dirnames = [os.path.join(root,"process_data/val")]
+            register_process_data(name,dirnames)
+        if name == "process_data_test":
+            dirnames = [os.path.join(root,"process_data/test")]
+            register_process_data(name,dirnames)
 
 
 
@@ -410,3 +448,4 @@ if __name__.endswith(".builtin"):
     register_all_pascal_voc(_root)
     register_all_ade20k(_root)
     register_all_icron_water(_root)
+    register_all_process_data(_root)

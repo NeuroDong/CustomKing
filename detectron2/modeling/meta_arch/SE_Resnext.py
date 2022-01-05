@@ -173,6 +173,5 @@ def se_resnext_152(cfg):
     model = SE_ResNeXt(Bottleneck, [3, 8, 36, 3],num_classes)
     return model
 
-
 if __name__=="__main__":
     print(se_resnext_101())
