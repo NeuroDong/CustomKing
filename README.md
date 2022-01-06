@@ -16,7 +16,7 @@ CUDA10.1
 Pytorch1.8.1
 # Existing examples
 ## Image classification
-Icron-water classification(SE-Resnext): https://github.com/dongdongdong1217/Detectron2-FC/tree/main/tools#readme
+Molten iron image classification(SE-Resnext): https://github.com/dongdongdong1217/Detectron2-FC/tree/main/tools#readme
 
 ## Data classification（Non image data）
 Process-data classification（Transformer）：https://github.com/dongdongdong1217/Detectron2-FC/tree/main/tools#readme
