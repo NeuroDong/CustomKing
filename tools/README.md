@@ -14,6 +14,10 @@ Icron_water.py is a molten iron image classification task based on SE-Resnext101
 | 50000iters(batchsize=32) | Resnext101 | IcronWater_trainval2018+2021 |  IcronWater_test2018+2021 | 92.50%  |  92.51% | 88.87% |
 | 30000iters(batchsize=32) | Resnext101 | IcronWater_trainval2021 |  IcronWater_test2021 | 95.71%  |  95.71% | 93.64% |
 ### Second phase
+The convergence of the loss function in the training process is as follows:
+
+![Image text](https://github.com/dongdongdong1217/Detectron2-FC/blob/main/visualizate/Visualization-diagram/Classification/Icron-water_xifen_trainloss.png)
+
 | Model(SE-Resnext) | Backbone | train_dataset| test_dataset | Accuracy  | macron_f1_score | mAP |
 | :----: |  :----: | :----: | :----: | :----: |:----: |:----: |
 | 5000iters(batchsize=32) | Resnext101 | IcronWater2021_train_xifen |  IcronWater2021_train_xifen |  61.83% |  62.16% | 46.25% |
