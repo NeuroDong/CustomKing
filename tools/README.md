@@ -37,6 +37,8 @@ process_data.py  is a blast furnace ironmaking process data classification task 
 | 5000iters(batchsize=32) | Transformer |  Process_data2021_trainval |  Process_data2021_test | 89.81%  |  86.59% | 70.49% |
 
 ### Second phase
+The convergence of the loss function in the training process is as follows:
+![Image text](https://github.com/dongdongdong1217/Detectron2-FC/blob/main/visualizate/Visualization-diagram/Classification/Process_data_xifen_trainloss.png)
 | Model(SE-Resnext) | Backbone | train_dataset| test_dataset | Accuracy  | macron_f1_score | mAP |
 | :----: |  :----: | :----: | :----: | :----: |:----: |:----: |
 | 1999iters(batchsize=32) | Transformer | Process_data2021_train_xifen |  Process_data2021_test_xifen | 86.43%  |  85.74% | 51.80% |
