@@ -25,13 +25,19 @@ The convergence of the loss function in the training process is as follows:
 | 15000iters(batchsize=32) | Resnext101 | IcronWater2021_train_xifen |  IcronWater2021_train_xifen |  63.94% |  63.35% | 46.18% |
 
 ## Process-data classification
+### First phase
 process_data.py  is a blast furnace ironmaking process data classification task based on Transformer, run process_data.py can train and test the blast furnace ironmaking process data. The loss function visualization program is shown in https://github.com/dongdongdong1217/Detectron2-FC/blob/main/visualizate/Classification/plt_smooth_trainloss.py. The convergence of the loss function in the training process is as follows:
 
 ![Image text](https://github.com/dongdongdong1217/Detectron2-FC/blob/main/visualizate/Visualization-diagram/Classification/Process_data_trainloss.png)
 
 | Model(SE-Resnext) | Backbone | train_dataset| test_dataset | Accuracy  | macron_f1_score | mAP |
 | :----: |  :----: | :----: | :----: | :----: |:----: |:----: |
-| 999iters(batchsize=32) | Transformer | Process_data2021 |  Process_data2021 | 89.81%  |  86.04% | 60.90% |
-| 1999iters(batchsize=32) | Transformer | Process_data2021 |  Process_data2021 | 89.81%  |  86.09% | 60.69% |
-| 5000iters(batchsize=32) | Transformer | Process_data2021 |  Process_data2021 | 89.81%  |  86.59% | 70.49% |
+| 999iters(batchsize=32) | Transformer | Process_data2021_trainval |  Process_data2021_test | 89.81%  |  86.04% | 60.90% |
+| 1999iters(batchsize=32) | Transformer | Process_data2021_trainval |  Process_data2021_test | 89.81%  |  86.09% | 60.69% |
+| 5000iters(batchsize=32) | Transformer |  Process_data2021_trainval |  Process_data2021_test | 89.81%  |  86.59% | 70.49% |
+
+### Second phase
+| Model(SE-Resnext) | Backbone | train_dataset| test_dataset | Accuracy  | macron_f1_score | mAP |
+| :----: |  :----: | :----: | :----: | :----: |:----: |:----: |
+| 1999iters(batchsize=32) | Transformer | Process_data2021_train_xifen |  Process_data2021_test_xifen | 86.43%  |  85.74% | 51.80% |
 
