@@ -44,3 +44,9 @@ The convergence of the loss function in the training process is as follows:
 | 1999iters(batchsize=32) | Transformer | Process_data2021_train_xifen |  Process_data2021_test_xifen | 86.43%  |  85.74% | 51.80% |
 | 2999iters(batchsize=32) | Transformer | Process_data2021_train_xifen |  Process_data2021_test_xifen | 86.43%  |  85.74% | 51.80% |
 
+AP values for each category are as follows：
+| Category 1 | Category 2 | Category 3| Category 4 | Category 5  | Category 6 | Category 7 | Category 8 | Category 9 | Category 10 |
+| :----: |  :----: | :----: | :----: | :----: |:----: |:----: |:----: |:----: |:----: |
+| 13.57% | 22.95% | 33.45% | 47.19% | 55.67% | 61.17% | 65.99% | 69.19% | 72.79% | 76.06% |
+
+
