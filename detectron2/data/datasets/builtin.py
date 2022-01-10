@@ -425,7 +425,9 @@ def register_all_process_data(root):
     names = ["process_data_trainval",
             "process_data_train",
             "process_data_val",
-            "process_data_test"]
+            "process_data_test",
+            "process_data_train_xifen",
+            "process_data_test_xifen"]
 
     for name in names:
         if name=="process_data_trainval":
@@ -440,6 +442,12 @@ def register_all_process_data(root):
             register_process_data(name,dirnames)
         if name == "process_data_test":
             dirnames = [os.path.join(root,"process_data/test")]
+            register_process_data(name,dirnames)
+        if name == "process_data_train_xifen":
+            dirnames = [os.path.join(root,"process_data_xifen/train")]
+            register_process_data(name,dirnames)
+        if name == "process_data_test_xifen":
+            dirnames = [os.path.join(root,"process_data_xifen/test")]
             register_process_data(name,dirnames)
 
 
