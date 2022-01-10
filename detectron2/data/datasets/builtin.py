@@ -382,7 +382,9 @@ def register_all_icron_water(root):
             "IcronWater2021_trainval",
             "IcronWater2021_train",
             "IcronWater2021_val",
-            "IcronWater2021_test"
+            "IcronWater2021_test",
+            "IcronWater2021_train_xifen",
+            "IcronWater2021_test_xifen"
             ]
 
     for name in names:
@@ -411,6 +413,12 @@ def register_all_icron_water(root):
             register_icron_water(name,dirnames)
         if name == "IcronWater2021_test":
             dirnames = [os.path.join(root,"IcronWater2021/test")]
+            register_icron_water(name,dirnames)
+        if name == "IcronWater2021_train_xifen":
+            dirnames = [os.path.join(root,"IcronWater2021_xifen/train")]
+            register_icron_water(name,dirnames)
+        if name == "IcronWater2021_test_xifen":
+            dirnames = [os.path.join(root,"IcronWater2021_xifen/test")]
             register_icron_water(name,dirnames)
     
 def register_all_process_data(root):
