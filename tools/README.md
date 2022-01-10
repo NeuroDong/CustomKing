@@ -40,4 +40,5 @@ process_data.py  is a blast furnace ironmaking process data classification task 
 | Model(SE-Resnext) | Backbone | train_dataset| test_dataset | Accuracy  | macron_f1_score | mAP |
 | :----: |  :----: | :----: | :----: | :----: |:----: |:----: |
 | 1999iters(batchsize=32) | Transformer | Process_data2021_train_xifen |  Process_data2021_test_xifen | 86.43%  |  85.74% | 51.80% |
+| 2999iters(batchsize=32) | Transformer | Process_data2021_train_xifen |  Process_data2021_test_xifen | 86.43%  |  85.74% | 51.80% |
 
