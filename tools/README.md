@@ -20,8 +20,8 @@ The convergence of the loss function in the training process is as follows:
 
 | Model(SE-Resnext) | Backbone | train_dataset| test_dataset | Accuracy  | macron_f1_score | mAP |
 | :----: |  :----: | :----: | :----: | :----: |:----: |:----: |
-| 5000iters(batchsize=32) | Resnext101 | IcronWater2021_train_xifen |  IcronWater2021_train_xifen |  61.83% |  62.16% | 46.25% |
-| 10000iters(batchsize=32) | Resnext101 | IcronWater2021_train_xifen |  IcronWater2021_train_xifen |  64.23% |  63.77% | 46.77% |
+| 5000iters(batchsize=32) | Resnext101 | IcronWater2021_train_xifen |  IcronWater2021_train_xifen |  61.83% |  62.16% | 43.34% |
+| 10000iters(batchsize=32) | Resnext101 | IcronWater2021_train_xifen |  IcronWater2021_train_xifen |  64.23% |  63.77% | 44.78% |
 | 15000iters(batchsize=32) | Resnext101 | IcronWater2021_train_xifen |  IcronWater2021_train_xifen |  63.94% |  63.35% | 46.18% |
 
 ## Process-data classification
