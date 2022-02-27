@@ -33,6 +33,7 @@ from .pascal_voc import register_pascal_voc
 #自己加上的用于分类任务的数据加载程序
 from .classification.icron_water import register_icron_water
 from .classification.process_data import register_process_data
+from .classification.process_and_icronWater import register_process_and_icronWater
 
 #自己加上的用于小样本目标检测的数据加载程序
 from .fsdet.meta_coco import register_meta_coco
@@ -450,6 +451,17 @@ def register_all_process_data(root):
             dirnames = [os.path.join(root,"process_data_xifen/test")]
             register_process_data(name,dirnames)
 
+def register_all_process_and_icronWater(root):
+    names = ["process_and_icronWater_train",
+            "process_and_icronWater_test"]
+    for name in names:
+        if name =="process_and_icronWater_train":
+            dirnames = [os.path.join(root,"process_data_xifen/train"),os.path.join(root,"IcronWater2021_xifen/train")]
+            register_process_and_icronWater(name,dirnames)
+        if name =="process_and_icronWater_test":
+            dirnames = [os.path.join(root,"process_data_xifen/test"),os.path.join(root,"IcronWater2021_xifen/test")]
+            register_process_and_icronWater(name,dirnames)
+
 
 
 # True for open source;
@@ -465,3 +477,4 @@ if __name__.endswith(".builtin"):
     register_all_ade20k(_root)
     register_all_icron_water(_root)
     register_all_process_data(_root)
+    register_all_process_and_icronWater(_root)
