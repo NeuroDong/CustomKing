@@ -1,5 +1,5 @@
 # What is Detectron2-FC
-Detectron2-FC a fast construction platform of neural network algorithm based on detectron2. We have been working hard in two directions: 
+We have been working hard in two directions: 
 
 1)Quickly build complex deep learning network algorithm for training and prediction; 
 
