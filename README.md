@@ -23,13 +23,9 @@ https://github.com/dongdongdong1217/SENeXt-Transformer/tree/main/tools#readme.
 ```
 
 # Existing examples
-## Image classification
-Molten iron image classification(SE-Resnext): https://github.com/dongdongdong1217/Detectron2-FC/tree/main/tools#readme
-
-## Data classification（Non image data）
-Process-data classification（Transformer）：https://github.com/dongdongdong1217/Detectron2-FC/tree/main/tools#readme
+## A novel detection method for the close time of the taphole of blast furnace based on two-stage multimodal data fusion
+See: https://github.com/dongdongdong1217/SENeXt-Transformer
 
 ## Object detection and image segmentation
 Detectron2's own algorithm see: https://github.com/facebookresearch/detectron2/blob/main/MODEL_ZOO.md
 
-## Few-shot object detection
