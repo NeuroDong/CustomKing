@@ -14,6 +14,14 @@ Ubuntu20.04
 CUDA10.1
 
 Pytorch1.8.1
+
+# Using tutorials
+All built-in algorithms, datasets, and pre-trained weights can be trained or evaluated by running the following code, just by changing the parameters accordingly. For the selection of parameters, see 
+https://github.com/dongdongdong1217/SENeXt-Transformer/tree/main/tools#readme.
+```java  
+  python3 tool/mian.py
+```
+
 # Existing examples
 ## Image classification
 Molten iron image classification(SE-Resnext): https://github.com/dongdongdong1217/Detectron2-FC/tree/main/tools#readme
