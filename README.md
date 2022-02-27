@@ -7,7 +7,7 @@ We have been working hard in two directions:
 
 Fortunately, detectron2 points out the direction for us. It builds a very convenient algorithm building platform based on pytorch, which can quickly reproduce the latest algorithms. However, detectron2 can only build algorithms with few tasks such as target detection and segmentation. For example, simple image classification cannot find convenience on detectron2. Therefore, on the basis of detectron2, we continue to enrich the functions of detectron2 to make it suitable for image classification, prediction, meta learning and other tasks.
 # Installation tutorial
-See https://detectron2.readthedocs.io/en/latest/tutorials/install.html. The construction environment is as follows:
+See https://detectron2.readthedocs.io/en/latest/tutorials/install.html for the installation of detectron2. The construction environment is as follows:
 
 Ubuntu20.04
 
