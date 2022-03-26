@@ -21,6 +21,9 @@ Resnet_encoder
 
 Please change the parameter for training data set selection: cfg.DATASETS.TRAIN, which has the following options.
 ```java 
+icron_water_trainval
+icron_water_train
+icron_water_val
 IcronWater2021_trainval
 IcronWater2021_train
 IcronWater2021_train_xifen
@@ -32,6 +35,7 @@ process_and_icronWater_train：The fusion data set of the second stage.
 
 Please change the parameter for test data set selection: cfg.DATASETS.TEST, which has the following options.
 ```java 
+icron_water_test
 IcronWater2021_test
 IcronWater2021_test_xifen
 process_data_test
