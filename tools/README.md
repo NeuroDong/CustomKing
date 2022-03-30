@@ -29,26 +29,31 @@ Transformer_cls
 ```
 
 
-Please change the parameter for training data set selection: cfg.DATASETS.TRAIN, which has the following options.
-```java 
+Please change the parameter for training data set selection: cfg.DATASETS.TRAIN, which has the following options. Please change the parameter for test data set selection: cfg.DATASETS.TEST, which has the following options.
+# Image Classification Data
+```java
 icron_water_trainval
 icron_water_train
 icron_water_val
 IcronWater2021_trainval
 IcronWater2021_train
 IcronWater2021_train_xifen
-process_data_trainval
-process_data_train
-process_data_train_xifen
-process_and_icronWater_train：The fusion data set of the second stage.
-```
-
-Please change the parameter for test data set selection: cfg.DATASETS.TEST, which has the following options.
-```java 
 icron_water_test
 IcronWater2021_test
 IcronWater2021_test_xifen
-process_data_test
-process_data_test_xifen
+```
+
+# Multimodal Data
+```java 
+process_and_icronWater_train
 process_and_icronWater_test
+```
+
+# Multivariable Data
+```java 
+process_data_trainval
+process_data_train
+process_data_test
+process_data_train_xifen
+process_data_test_xifen
 ```
