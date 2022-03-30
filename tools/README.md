@@ -8,8 +8,8 @@ SwinTransformer
 ResNeXt101
 Sk_coatnet_0
 ```
+# Multimodal Data Fusion Network
 ```java
-Transformer_cls
 Se_resnext_tranformer
 SENeXt_Transformer
 SENeXt_Encoder
@@ -23,6 +23,11 @@ Resnet_tranformer
 Resnet_decoder
 Resnet_encoder
 ```
+# Multivariable Classification
+```java
+Transformer_cls
+```
+
 
 Please change the parameter for training data set selection: cfg.DATASETS.TRAIN, which has the following options.
 ```java 
