@@ -8,98 +8,143 @@ import torch.nn as nn
 import math
 import torch
 import numpy as np
-from .build import META_ARCH_REGISTRY
+from ..build import META_ARCH_REGISTRY
 
-def Conv1(in_planes, places, stride=2):
-    return nn.Sequential(
-        nn.Conv2d(in_channels=in_planes,out_channels=places,kernel_size=7,stride=stride,padding=3, bias=False),
-        nn.BatchNorm2d(places),
-        nn.ReLU(inplace=True),
-        nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-    )
+from detectron2.modeling.meta_arch.Image_classification import SE_Resnext
 
 class Bottleneck(nn.Module):
-    def __init__(self,in_places,places, stride=1,downsampling=False, expansion = 4):
-        super(Bottleneck,self).__init__()
-        self.expansion = expansion
-        self.downsampling = downsampling
+    expansion = 4
 
-        self.bottleneck = nn.Sequential(
-            nn.Conv2d(in_channels=in_places,out_channels=places,kernel_size=1,stride=1, bias=False),
-            nn.BatchNorm2d(places),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels=places, out_channels=places, kernel_size=3, stride=stride, padding=1, bias=False),
-            nn.BatchNorm2d(places),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels=places, out_channels=places*self.expansion, kernel_size=1, stride=1, bias=False),
-            nn.BatchNorm2d(places*self.expansion),
-        )
-
-        if self.downsampling:
-            self.downsample = nn.Sequential(
-                nn.Conv2d(in_channels=in_places, out_channels=places*self.expansion, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(places*self.expansion)
-            )
+    def __init__(self, inplanes, planes, stride=1, downsample=None, num_group=32):
+        super(Bottleneck, self).__init__()
+        self.conv1 = nn.Conv2d(inplanes, planes*2, kernel_size=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(planes*2)
+        self.conv2 = nn.Conv2d(planes*2, planes*2, kernel_size=3, stride=stride,
+                               padding=1, bias=False, groups=num_group)
+        self.bn2 = nn.BatchNorm2d(planes*2)
+        self.conv3 = nn.Conv2d(planes*2, planes * 4, kernel_size=1, bias=False)
+        self.bn3 = nn.BatchNorm2d(planes * 4)
         self.relu = nn.ReLU(inplace=True)
+        self.downsample = downsample
+        self.stride = stride
+
+        if planes == 64:
+            self.globalAvgPool = nn.AvgPool2d(56, stride=1)
+        elif planes == 128:
+            self.globalAvgPool = nn.AvgPool2d(28, stride=1)
+        elif planes == 256:
+            self.globalAvgPool = nn.AvgPool2d(14, stride=1)
+        elif planes == 512:
+            self.globalAvgPool = nn.AvgPool2d(7, stride=1)
+        self.fc1 = nn.Linear(in_features=planes * 4, out_features=round(planes / 4))
+        self.fc2 = nn.Linear(in_features=round(planes / 4), out_features=planes * 4)
+        self.sigmoid = nn.Sigmoid()
+
     def forward(self, x):
         residual = x
-        out = self.bottleneck(x)
 
-        if self.downsampling:
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        if self.downsample is not None:
             residual = self.downsample(x)
+
+        original_out = out
+        out = self.globalAvgPool(out)
+        out = out.view(out.size(0), -1)
+        out = self.fc1(out)
+        out = self.relu(out)
+        out = self.fc2(out)
+        out = self.sigmoid(out)
+        out = out.view(out.size(0), out.size(1), 1, 1)
+        
+        out = out * original_out
 
         out += residual
         out = self.relu(out)
+
         return out
 
-class ResNet(nn.Module):
-    def __init__(self,blocks, num_classes=1000, expansion = 4):
-        super(ResNet,self).__init__()
-        self.expansion = expansion
+class SE_ResNeXt(nn.Module):
 
-        self.conv1 = Conv1(in_planes = 3, places= 64)
-
-        self.layer1 = self.make_layer(in_places = 64, places= 64, block=blocks[0], stride=1)
-        self.layer2 = self.make_layer(in_places = 256,places=128, block=blocks[1], stride=2)
-        self.layer3 = self.make_layer(in_places=512,places=256, block=blocks[2], stride=2)
-        self.layer4 = self.make_layer(in_places=1024,places=512, block=blocks[3], stride=2)
-
+    def __init__(self, block, layers, num_group=32):
+        self.inplanes = 64
+        super(SE_ResNeXt, self).__init__()
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+                               bias=False)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.relu = nn.ReLU(inplace=True)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.layer1 = self._make_layer(block, 64, layers[0], num_group)
+        self.layer2 = self._make_layer(block, 128, layers[1], num_group, stride=2)
+        self.layer3 = self._make_layer(block, 256, layers[2], num_group, stride=2)
+        self.layer4 = self._make_layer(block, 512, layers[3], num_group, stride=2)
         self.avgpool = nn.AvgPool2d(7, stride=1)
-        self.fc = nn.Linear(2048,num_classes)
+        self.fc = nn.Linear(512 * block.expansion, 512)
 
         # #自己加的
         self.layer5 = nn.Conv2d(2048,512,(1,1),1,0)
+        #self.layer6 = nn.Conv2d(256,512,(8,8),8,0)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
             elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
 
-    def make_layer(self, in_places, places, block, stride):
+    def _make_layer(self, block, planes, blocks, num_group, stride=1):
+        downsample = None
+        if stride != 1 or self.inplanes != planes * block.expansion:
+            downsample = nn.Sequential(
+                nn.Conv2d(self.inplanes, planes * block.expansion,
+                          kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(planes * block.expansion),
+            )
+
         layers = []
-        layers.append(Bottleneck(in_places, places,stride, downsampling =True))
-        for i in range(1, block):
-            layers.append(Bottleneck(places*self.expansion, places))
+        layers.append(block(self.inplanes, planes, stride, downsample, num_group=num_group))
+        self.inplanes = planes * block.expansion
+        for i in range(1, blocks):
+            layers.append(block(self.inplanes, planes, num_group=num_group))
 
         return nn.Sequential(*layers)
 
-
     def forward(self, batch_images_tensor):
+        
+        #-----------------网络向前传播-------------#
         x = self.conv1(batch_images_tensor)
-
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-
+        x = self.layer5(x)
+        
+        #print("x_shape:",x.shape)
+        #x = self.layer6(x)
+        
+        #print("x_shape:",x.shape)
         #x = self.avgpool(x)
         #x = x.view(x.size(0), -1)
+        #图像数据只占一行
         #x = self.fc(x)
-        x = self.layer5(x)
-        x = x.reshape(len(batch_images_tensor),49,512)
+        #return x.unsqueeze(1)
 
+        #图像数据占4行
+        x = x.reshape(len(batch_images_tensor),49,512)
+        #print("x_shape:",x.shape)
         return x
 
 ##############################################################
@@ -246,56 +291,6 @@ class PoswiseFeedForwardNet(nn.Module):
         output = self.fc(inputs) 
         return self.norm(output + residual) # [batch_size, seq_len, d_model]
 
-#Encoder Layer
-class EncoderLayer(nn.Module):
-    def __init__(self):
-        super(EncoderLayer, self).__init__()
-        self.enc_self_attn = MultiHeadAttention()
-        self.pos_ffn = PoswiseFeedForwardNet()
-
-    def forward(self, enc_inputs, enc_self_attn_mask):
-        '''
-        enc_inputs: [batch_size, src_len, d_model]
-        enc_self_attn_mask: [batch_size, src_len, src_len]
-        '''
-        # enc_outputs: [batch_size, src_len, d_model], attn: [batch_size, n_heads, src_len, src_len]
-        
-
-        enc_outputs, attn = self.enc_self_attn(enc_inputs, enc_inputs, enc_inputs, enc_self_attn_mask) # enc_inputs to same Q,K,V
-        enc_outputs = self.pos_ffn(enc_outputs) # enc_outputs: [batch_size, src_len, d_model]
-        return enc_outputs, attn
-
-#Encoder,src_vocab_size代表输入字典的长度
-class Encoder(nn.Module):
-    def __init__(self,src_vocab_size):
-        super(Encoder, self).__init__()
-        self.src_emb = nn.Embedding(src_vocab_size, d_model) #得到词嵌入
-        self.pos_emb = nn.Embedding.from_pretrained(get_sinusoid_encoding_table(src_vocab_size, d_model),freeze=True) #位置编码得到位置嵌入
-        self.layers = nn.ModuleList([EncoderLayer() for _ in range(n_layers)])
-
-    def forward(self, enc_inputs,image_output):
-        '''
-        enc_inputs: [batch_size, src_len]
-        '''
-        word_emb = self.src_emb(enc_inputs) # [batch_size, src_len, d_model]
-        pos_emb = self.pos_emb(enc_inputs) # [batch_size, src_len, d_model]
-        enc_outputs = word_emb + pos_emb
-
-        enc_outputs = torch.cat((enc_outputs,image_output),dim=1) #融合过程数据和图像数据
-        
-        enc_self_attn_mask = get_attn_pad_mask(enc_inputs, enc_inputs) # [batch_size, src_len, src_len]
-        batch_size = enc_inputs.size(0)
-        add_mask = torch.zeros((batch_size,35,49)).bool().cuda()
-        enc_self_attn_mask = torch.cat((enc_self_attn_mask,add_mask),dim=2)
-        add_mask = torch.zeros((batch_size,49,84)).bool().cuda()
-        enc_self_attn_mask = torch.cat((enc_self_attn_mask,add_mask),dim=1)
-        
-        enc_self_attns = []
-        for layer in self.layers:
-            # enc_outputs: [batch_size, src_len, d_model], enc_self_attn: [batch_size, n_heads, src_len, src_len]
-            enc_outputs, enc_self_attn = layer(enc_outputs, enc_self_attn_mask)
-            enc_self_attns.append(enc_self_attn)
-        return enc_outputs, enc_self_attns
 
 #Decoder Layer
 class DecoderLayer(nn.Module):
@@ -355,14 +350,14 @@ class Decoder(nn.Module):
         return dec_outputs, dec_self_attns, dec_enc_attns
 
 @META_ARCH_REGISTRY.register()
-class Resnet_decoder(nn.Module):
+class Se_resnext_Decoder(nn.Module):
     def __init__(self,cfg):
-        super(Resnet_decoder, self).__init__()
-        self.image_network = ResNet([3, 4, 23, 3])
-        self.src_emb = nn.Embedding(cfg.src_vocab_size, d_model) #得到词嵌入
-        self.pos_emb = nn.Embedding.from_pretrained(get_sinusoid_encoding_table(cfg.src_vocab_size, d_model),freeze=True)
-        self.decoder = Decoder(cfg.tgt_vocab_size)
-        self.projection = nn.Linear(d_model,cfg.tgt_vocab_size, bias=False)
+        super(Se_resnext_Decoder, self).__init__()
+        self.image_network = SE_ResNeXt(Bottleneck, [3, 4, 23, 3]).cuda()  #resnext101
+        self.src_emb = nn.Embedding(cfg.Arguments1, d_model) #得到词嵌入
+        self.pos_emb = nn.Embedding.from_pretrained(get_sinusoid_encoding_table(cfg.Arguments1, d_model),freeze=True)
+        self.decoder = Decoder(cfg.Arguments2)
+        self.projection = nn.Linear(d_model,cfg.Arguments2, bias=False)
         self.loss_fun = nn.CrossEntropyLoss(ignore_index=0)
 
     def forward(self,data):
@@ -394,10 +389,12 @@ class Resnet_decoder(nn.Module):
         image_output = self.image_network(batch_images_tensor)
 
         #----------------推理Transformer------------#
+        #融合过程数据和图像数据
         word_emb = self.src_emb(enc_inputs) # [batch_size, src_len, d_model]
         pos_emb = self.pos_emb(enc_inputs) # [batch_size, src_len, d_model]
         enc_outputs = word_emb + pos_emb
         enc_outputs = torch.cat((enc_outputs,image_output),dim=1)
+
         dec_outputs, dec_self_attns, dec_enc_attns = self.decoder(dec_inputs, enc_inputs, enc_outputs)
         
         #----------------------------解码生成损失函数---------------------------------#
@@ -410,6 +407,7 @@ class Resnet_decoder(nn.Module):
             return outputs
 
 if __name__=="__main__":
-    model = Resnet_decoder()
+    
+    model = Se_resnext_Decoder()
     output = model()
     print("output:",output.shape)

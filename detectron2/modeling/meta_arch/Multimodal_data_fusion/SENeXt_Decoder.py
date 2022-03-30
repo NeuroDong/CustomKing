@@ -8,9 +8,9 @@ import torch.nn as nn
 import math
 import torch
 import numpy as np
-from .build import META_ARCH_REGISTRY
+from ..build import META_ARCH_REGISTRY
 
-from detectron2.modeling.meta_arch import SE_Resnext
+from detectron2.modeling.meta_arch.Image_classification import SE_Resnext
 
 class Bottleneck(nn.Module):
     expansion = 4
@@ -342,10 +342,10 @@ class SENeXt_Decoder(nn.Module):
         super(SENeXt_Decoder, self).__init__()
         self.image_network = SENeXt(Bottleneck, [3, 4, 23, 3]).cuda()  #resnext101
         #self.encoder = Encoder(cfg.src_vocab_size)
-        self.src_emb = nn.Embedding(cfg.src_vocab_size, d_model) #得到词嵌入
+        self.src_emb = nn.Embedding(cfg.Arguments1, d_model) #得到词嵌入
         self.pos_emb = nn.Embedding.from_pretrained(get_sinusoid_encoding_table(cfg.src_vocab_size, d_model),freeze=True)
-        self.decoder = Decoder(cfg.tgt_vocab_size)
-        self.projection = nn.Linear(d_model,cfg.tgt_vocab_size, bias=False)
+        self.decoder = Decoder(cfg.Arguments2)
+        self.projection = nn.Linear(d_model,cfg.Arguments2, bias=False)
         self.loss_fun = nn.CrossEntropyLoss(ignore_index=0)
 
     def forward(self,data):

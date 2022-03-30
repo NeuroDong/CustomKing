@@ -8,9 +8,9 @@ import torch.nn as nn
 import math
 import torch
 import numpy as np
-from .build import META_ARCH_REGISTRY
+from ..build import META_ARCH_REGISTRY
 
-from detectron2.modeling.meta_arch import SE_Resnext
+from detectron2.modeling.meta_arch.Image_classification import SE_Resnext
 
 class Bottleneck(nn.Module):
     expansion = 4
@@ -291,6 +291,56 @@ class PoswiseFeedForwardNet(nn.Module):
         output = self.fc(inputs) 
         return self.norm(output + residual) # [batch_size, seq_len, d_model]
 
+#Encoder Layer
+class EncoderLayer(nn.Module):
+    def __init__(self):
+        super(EncoderLayer, self).__init__()
+        self.enc_self_attn = MultiHeadAttention()
+        self.pos_ffn = PoswiseFeedForwardNet()
+
+    def forward(self, enc_inputs, enc_self_attn_mask):
+        '''
+        enc_inputs: [batch_size, src_len, d_model]
+        enc_self_attn_mask: [batch_size, src_len, src_len]
+        '''
+        # enc_outputs: [batch_size, src_len, d_model], attn: [batch_size, n_heads, src_len, src_len]
+        
+
+        enc_outputs, attn = self.enc_self_attn(enc_inputs, enc_inputs, enc_inputs, enc_self_attn_mask) # enc_inputs to same Q,K,V
+        enc_outputs = self.pos_ffn(enc_outputs) # enc_outputs: [batch_size, src_len, d_model]
+        return enc_outputs, attn
+
+#Encoder,src_vocab_size代表输入字典的长度
+class Encoder(nn.Module):
+    def __init__(self,src_vocab_size):
+        super(Encoder, self).__init__()
+        self.src_emb = nn.Embedding(src_vocab_size, d_model) #得到词嵌入
+        self.pos_emb = nn.Embedding.from_pretrained(get_sinusoid_encoding_table(src_vocab_size, d_model),freeze=True) #位置编码得到位置嵌入
+        self.layers = nn.ModuleList([EncoderLayer() for _ in range(n_layers)])
+
+    def forward(self, enc_inputs,image_output):
+        '''
+        enc_inputs: [batch_size, src_len]
+        '''
+        word_emb = self.src_emb(enc_inputs) # [batch_size, src_len, d_model]
+        pos_emb = self.pos_emb(enc_inputs) # [batch_size, src_len, d_model]
+        enc_outputs = word_emb + pos_emb
+
+        enc_outputs = torch.cat((enc_outputs,image_output),dim=1) #融合过程数据和图像数据
+        
+        enc_self_attn_mask = get_attn_pad_mask(enc_inputs, enc_inputs) # [batch_size, src_len, src_len]
+        batch_size = enc_inputs.size(0)
+        add_mask = torch.zeros((batch_size,35,49)).bool().cuda()
+        enc_self_attn_mask = torch.cat((enc_self_attn_mask,add_mask),dim=2)
+        add_mask = torch.zeros((batch_size,49,84)).bool().cuda()
+        enc_self_attn_mask = torch.cat((enc_self_attn_mask,add_mask),dim=1)
+        
+        enc_self_attns = []
+        for layer in self.layers:
+            # enc_outputs: [batch_size, src_len, d_model], enc_self_attn: [batch_size, n_heads, src_len, src_len]
+            enc_outputs, enc_self_attn = layer(enc_outputs, enc_self_attn_mask)
+            enc_self_attns.append(enc_self_attn)
+        return enc_outputs, enc_self_attns
 
 #Decoder Layer
 class DecoderLayer(nn.Module):
@@ -350,14 +400,13 @@ class Decoder(nn.Module):
         return dec_outputs, dec_self_attns, dec_enc_attns
 
 @META_ARCH_REGISTRY.register()
-class Se_resnext_Decoder(nn.Module):
+class Se_resnext_tranformer(nn.Module):
     def __init__(self,cfg):
-        super(Se_resnext_Decoder, self).__init__()
+        super(Se_resnext_tranformer, self).__init__()
         self.image_network = SE_ResNeXt(Bottleneck, [3, 4, 23, 3]).cuda()  #resnext101
-        self.src_emb = nn.Embedding(cfg.src_vocab_size, d_model) #得到词嵌入
-        self.pos_emb = nn.Embedding.from_pretrained(get_sinusoid_encoding_table(cfg.src_vocab_size, d_model),freeze=True)
-        self.decoder = Decoder(cfg.tgt_vocab_size)
-        self.projection = nn.Linear(d_model,cfg.tgt_vocab_size, bias=False)
+        self.encoder = Encoder(cfg.Arguments1)
+        self.decoder = Decoder(cfg.Arguments2)
+        self.projection = nn.Linear(d_model,cfg.Arguments2, bias=False)
         self.loss_fun = nn.CrossEntropyLoss(ignore_index=0)
 
     def forward(self,data):
@@ -389,17 +438,13 @@ class Se_resnext_Decoder(nn.Module):
         image_output = self.image_network(batch_images_tensor)
 
         #----------------推理Transformer------------#
-        #融合过程数据和图像数据
-        word_emb = self.src_emb(enc_inputs) # [batch_size, src_len, d_model]
-        pos_emb = self.pos_emb(enc_inputs) # [batch_size, src_len, d_model]
-        enc_outputs = word_emb + pos_emb
-        enc_outputs = torch.cat((enc_outputs,image_output),dim=1)
-
+        enc_outputs, enc_self_attns = self.encoder(enc_inputs,image_output)
+        # dec_outpus: [batch_size, tgt_len, d_model], dec_self_attns: [n_layers, batch_size, n_heads, tgt_len, tgt_len], dec_enc_attn: [n_layers, batch_size, tgt_len, src_len]
         dec_outputs, dec_self_attns, dec_enc_attns = self.decoder(dec_inputs, enc_inputs, enc_outputs)
         
         #----------------------------解码生成损失函数---------------------------------#
         dec_logits = self.projection(dec_outputs) # dec_logits: [batch_size, tgt_len, tgt_vocab_size]
-        outputs, dec_self_attns, dec_enc_attns = dec_logits.view(-1, dec_logits.size(-1)), dec_self_attns, dec_enc_attns
+        outputs, enc_self_attns, dec_self_attns, dec_enc_attns = dec_logits.view(-1, dec_logits.size(-1)), enc_self_attns, dec_self_attns, dec_enc_attns
         if self.training:
             loss = self.loss_fun(outputs, dec_inputs.view(-1))    
             return loss
@@ -408,6 +453,6 @@ class Se_resnext_Decoder(nn.Module):
 
 if __name__=="__main__":
     
-    model = Se_resnext_Decoder()
+    model = Se_resnext_tranformer()
     output = model()
     print("output:",output.shape)

@@ -1,4 +1,4 @@
-from .build import META_ARCH_REGISTRY
+from ..build import META_ARCH_REGISTRY
 import torch
 import torch.nn as nn
 
@@ -97,10 +97,20 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
 
-    def forward(self, x):
+    def forward(self, data):
+        #------------------预处理(data里面既含有image、label、width、height信息。)-----------------#
+        batchsize = len(data)
+        batch_images = []
+        batch_label = []
+        for i in range(0,batchsize,1):
+            batch_images.append(data[i]["image"])
+            batch_label.append(int(float(data[i]["y"])))
+        batch_images=[image.tolist() for image in batch_images]
+        batch_images_tensor = torch.tensor(batch_images,dtype=torch.float).cuda()
+
 
         # conv1层
-        x = self.conv1(x)   # torch.Size([1, 64, 56, 56])
+        x = self.conv1(batch_images_tensor)   # torch.Size([1, 64, 56, 56])
 
         # conv2_x层
         x = self.layer1(x)  # torch.Size([1, 256, 56, 56])
@@ -115,7 +125,15 @@ class ResNet(nn.Module):
         x = x.view(x.size(0), -1)   # torch.Size([1, 2048]) / torch.Size([1, 512])
         x = self.fc(x)      # torch.Size([1, 5])
 
-        return x
+        if self.training:
+            #得到损失函数值
+            batch_label = torch.tensor(batch_label,dtype=float).cuda()
+            loss_fun = nn.CrossEntropyLoss()
+            loss = loss_fun(x,batch_label.long())
+            return loss
+        else:
+            #直接返回推理结果
+            return x
 
 @META_ARCH_REGISTRY.register()
 def ResNeXt50():

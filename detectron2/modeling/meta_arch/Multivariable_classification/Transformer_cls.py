@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import torch.nn as nn
-from .build import META_ARCH_REGISTRY
+from ..build import META_ARCH_REGISTRY
 
 __all__ = ["Transformer_cls"]
 

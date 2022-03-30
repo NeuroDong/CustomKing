@@ -8,9 +8,9 @@ import torch.nn as nn
 import math
 import torch
 import numpy as np
-from .build import META_ARCH_REGISTRY
+from ..build import META_ARCH_REGISTRY
 
-from detectron2.modeling.meta_arch import SE_Resnext
+from detectron2.modeling.meta_arch.Image_classification import SE_Resnext
 
 class Bottleneck(nn.Module):
     expansion = 4
@@ -328,71 +328,14 @@ class Encoder(nn.Module):
             enc_self_attns.append(enc_self_attn)
         return enc_outputs, enc_self_attns
 
-#Decoder Layer
-class DecoderLayer(nn.Module):
-    def __init__(self):
-        super(DecoderLayer, self).__init__()
-        self.dec_self_attn = MultiHeadAttention()
-        self.dec_enc_attn = MultiHeadAttention()
-        self.pos_ffn = PoswiseFeedForwardNet()
-
-    def forward(self, dec_inputs, enc_outputs, dec_self_attn_mask, dec_enc_attn_mask):
-        '''
-        dec_inputs: [batch_size, tgt_len, d_model]
-        enc_outputs: [batch_size, src_len, d_model]
-        dec_self_attn_mask: [batch_size, tgt_len, tgt_len]
-        dec_enc_attn_mask: [batch_size, tgt_len, src_len]
-        '''
-        # dec_outputs: [batch_size, tgt_len, d_model], dec_self_attn: [batch_size, n_heads, tgt_len, tgt_len]
-        dec_outputs, dec_self_attn = self.dec_self_attn(dec_inputs, dec_inputs, dec_inputs, dec_self_attn_mask)
-        # dec_outputs: [batch_size, tgt_len, d_model], dec_enc_attn: [batch_size, h_heads, tgt_len, src_len]
-        
-        dec_outputs, dec_enc_attn = self.dec_enc_attn(dec_outputs, enc_outputs, enc_outputs, dec_enc_attn_mask)
-        dec_outputs = self.pos_ffn(dec_outputs) # [batch_size, tgt_len, d_model]
-        return dec_outputs, dec_self_attn, dec_enc_attn
-
-#Decoder
-class Decoder(nn.Module):
-    def __init__(self,tgt_vocab_size):
-        super(Decoder, self).__init__()
-        self.tgt_emb = nn.Embedding(tgt_vocab_size, d_model)
-        self.pos_emb = nn.Embedding.from_pretrained(get_sinusoid_encoding_table(tgt_vocab_size, d_model),freeze=True)
-        self.layers = nn.ModuleList([DecoderLayer() for _ in range(n_layers)])
-
-    def forward(self, dec_inputs, enc_inputs, enc_outputs):
-        '''
-        dec_inputs: [batch_size, tgt_len]
-        enc_intpus: [batch_size, src_len]
-        enc_outputs: [batsh_size, src_len, d_model]
-        '''
-        word_emb = self.tgt_emb(dec_inputs) # [batch_size, tgt_len, d_model]
-        pos_emb = self.pos_emb(dec_inputs) # [batch_size, tgt_len, d_model]
-        dec_outputs = word_emb + pos_emb
-        dec_self_attn_pad_mask = get_attn_pad_mask(dec_inputs, dec_inputs) # [batch_size, tgt_len, tgt_len]
-        dec_self_attn_subsequent_mask = get_attn_subsequence_mask(dec_inputs) # [batch_size, tgt_len]
-        dec_self_attn_mask = torch.gt((dec_self_attn_pad_mask + dec_self_attn_subsequent_mask), 0) # [batch_size, tgt_len, tgt_len]
-
-        dec_enc_attn_mask = get_attn_pad_mask(dec_inputs, enc_inputs) # [batc_size, tgt_len, src_len]
-        batch_size = enc_inputs.size(0)
-        add_mask = torch.zeros((batch_size,1,49)).bool().cuda()
-        dec_enc_attn_mask = torch.cat((dec_enc_attn_mask,add_mask),dim=2)
-
-        dec_self_attns, dec_enc_attns = [], []
-        for layer in self.layers:
-            # dec_outputs: [batch_size, tgt_len, d_model], dec_self_attn: [batch_size, n_heads, tgt_len, tgt_len], dec_enc_attn: [batch_size, h_heads, tgt_len, src_len]
-            dec_outputs, dec_self_attn, dec_enc_attn = layer(dec_outputs, enc_outputs, dec_self_attn_mask, dec_enc_attn_mask)
-            dec_self_attns.append(dec_self_attn)
-            dec_enc_attns.append(dec_enc_attn)
-        return dec_outputs, dec_self_attns, dec_enc_attns
 
 @META_ARCH_REGISTRY.register()
-class SENeXt_Transformer(nn.Module):
+class SENeXt_Encoder(nn.Module):
     def __init__(self,cfg):
-        super(SENeXt_Transformer, self).__init__()
+        super(SENeXt_Encoder, self).__init__()
         self.image_network = SENeXt(Bottleneck, [3, 4, 23, 3]).cuda()  #resnext101
-        self.encoder = Encoder(cfg.src_vocab_size)
-        self.decoder = Decoder(cfg.tgt_vocab_size)
-        self.projection = nn.Linear(d_model,cfg.tgt_vocab_size, bias=False)
+        self.encoder = Encoder(cfg.Arguments1)
+        self.projection = nn.Linear(d_model,cfg.Arguments2, bias=False)
         self.loss_fun = nn.CrossEntropyLoss(ignore_index=0)
 
     def forward(self,data):
@@ -422,18 +365,14 @@ class SENeXt_Transformer(nn.Module):
         #----------------------------网络向前推理------------------------------------#
         #-----------------推理SE-Resnext------------#
         image_output = self.image_network(batch_images_tensor)
-        print("image_output_shape:",image_output.shape)
+
         #----------------推理Transformer------------#
         enc_outputs, enc_self_attns = self.encoder(enc_inputs,image_output)
-        # dec_outpus: [batch_size, tgt_len, d_model], dec_self_attns: [n_layers, batch_size, n_heads, tgt_len, tgt_len], dec_enc_attn: [n_layers, batch_size, tgt_len, src_len]
-        print("enc_inputs:",enc_inputs.shape)
-        print("enc_outputs:",enc_outputs.shape)
-        
-        dec_outputs, dec_self_attns, dec_enc_attns = self.decoder(dec_inputs, enc_inputs, enc_outputs)
+        enc_outputs = enc_outputs.mean(dim=1)
         
         #----------------------------解码生成损失函数---------------------------------#
-        dec_logits = self.projection(dec_outputs) # dec_logits: [batch_size, tgt_len, tgt_vocab_size]
-        outputs, enc_self_attns, dec_self_attns, dec_enc_attns = dec_logits.view(-1, dec_logits.size(-1)), enc_self_attns, dec_self_attns, dec_enc_attns
+        dec_logits = self.projection(enc_outputs) # dec_logits: [batch_size, tgt_len, tgt_vocab_size]
+        outputs, enc_self_attns, = dec_logits.view(-1, dec_logits.size(-1)), enc_self_attns
         if self.training:
             loss = self.loss_fun(outputs, dec_inputs.view(-1))    
             return loss
@@ -442,6 +381,6 @@ class SENeXt_Transformer(nn.Module):
 
 if __name__=="__main__":
     
-    model = SENeXt_Transformer()
+    model = SENeXt_Encoder()
     output = model()
     print("output:",output.shape)

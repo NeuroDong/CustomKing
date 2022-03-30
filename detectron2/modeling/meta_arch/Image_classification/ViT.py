@@ -4,7 +4,7 @@ from torch import nn
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 
-from .build import META_ARCH_REGISTRY
+from ..build import META_ARCH_REGISTRY
 
 # helpers
 
@@ -79,7 +79,7 @@ class Transformer(nn.Module):
         return x
 @META_ARCH_REGISTRY.register()
 class VIT(nn.Module):
-    def __init__(self, cfg,  image_size = (224,224), patch_size=(112,112),dim = 768, depth = 10, heads = 8, mlp_dim = 64, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
+    def __init__(self, cfg,  image_size = (224,224), patch_size=(32,32),dim = 768, depth = 10, heads = 8, mlp_dim = 64, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
         super().__init__()
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(patch_size)
@@ -106,7 +106,7 @@ class VIT(nn.Module):
 
         self.mlp_head = nn.Sequential(
             nn.LayerNorm(dim),
-            nn.Linear(dim, cfg.NUM_CLASSES)
+            nn.Linear(dim, cfg.Arguments1)
         )
 
     def forward(self, data):
@@ -117,7 +117,7 @@ class VIT(nn.Module):
         batch_label = []
         for i in range(0,batchsize,1):
             batch_images.append(data[i]["image"])
-            batch_label.append(int(float(data[i]["label"])))
+            batch_label.append(int(float(data[i]["y"])))
         batch_images=[image.tolist() for image in batch_images]
         batch_images_tensor = torch.tensor(batch_images,dtype=torch.float).cuda()
 
@@ -131,11 +131,9 @@ class VIT(nn.Module):
         x = self.dropout(x)
 
         x = self.transformer(x)
-        print("x_shape:",x.shape)
         x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
 
         x = self.to_latent(x)
-        print("x_shape:",x.shape)
         x = self.mlp_head(x)
         
 

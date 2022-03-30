@@ -195,7 +195,7 @@ def Icron_water_mapper(dataset_dict):
     image = utils.read_image(dataset_dict["file_name"], format="BGR")
     image = torch.from_numpy(image.copy().transpose(2, 0, 1))
     
-    return {"image":image,"label":dataset_dict["label"],"width":image.shape[2],"height":image.shape[1]}
+    return {"image":image,"y":dataset_dict["label"],"width":image.shape[2],"height":image.shape[1]}
 
 def process_data_mapper(dataset_dict):
     return {"image_name":dataset_dict["image_name"],"x":dataset_dict["x"],"y":dataset_dict["y"],"width":35,"height":1}

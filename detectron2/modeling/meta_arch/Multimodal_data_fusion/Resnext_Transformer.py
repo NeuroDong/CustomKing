@@ -8,129 +8,124 @@ import torch.nn as nn
 import math
 import torch
 import numpy as np
-from .build import META_ARCH_REGISTRY
+from ..build import META_ARCH_REGISTRY
 
-from detectron2.modeling.meta_arch import SE_Resnext
+num_class = 5
+resnext101_32x8d_params = [3, 4, 23, 3]
 
-class Bottleneck(nn.Module):
-    expansion = 4
+# 定义Conv1层
+def Conv1(in_planes, places, stride=2):
+    return nn.Sequential(
+        nn.Conv2d(in_channels=in_planes,out_channels=places,kernel_size=7,stride=stride,padding=3, bias=False),
+        nn.BatchNorm2d(places),
+        nn.ReLU(inplace=True),
+        nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+    )
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None, num_group=32):
-        super(Bottleneck, self).__init__()
-        self.conv1 = nn.Conv2d(inplanes, planes*2, kernel_size=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(planes*2)
-        self.conv2 = nn.Conv2d(planes*2, planes*2, kernel_size=3, stride=stride,
-                               padding=1, bias=False, groups=num_group)
-        self.bn2 = nn.BatchNorm2d(planes*2)
-        self.conv3 = nn.Conv2d(planes*2, planes * 4, kernel_size=1, bias=False)
-        self.bn3 = nn.BatchNorm2d(planes * 4)
+class ResNeXtBlock(nn.Module):
+    def __init__(self,in_places,places, stride=1,downsampling=False, expansion = 2, cardinality=32):
+        super(ResNeXtBlock,self).__init__()
+        self.expansion = expansion
+        self.downsampling = downsampling
+
+        # torch.Size([1, 256, 56, 56])
+        # torch.Size([1, 512, 28, 28])
+        # torch.Size([1, 1024, 14, 14])
+        # torch.Size([1, 2048, 7, 7])
+        self.bottleneck = nn.Sequential(
+            nn.Conv2d(in_channels=in_places, out_channels=places, kernel_size=1, stride=1, bias=False),
+            nn.BatchNorm2d(places),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(in_channels=places, out_channels=places, kernel_size=3, stride=stride, padding=1, bias=False, groups=cardinality),  # 使用了组卷积
+            nn.BatchNorm2d(places),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(in_channels=places, out_channels=places * self.expansion, kernel_size=1, stride=1, bias=False),
+            nn.BatchNorm2d(places * self.expansion),
+        )
+
+        if self.downsampling:
+            self.downsample = nn.Sequential(
+                nn.Conv2d(in_channels=in_places, out_channels=places * self.expansion, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(places * self.expansion)
+            )
         self.relu = nn.ReLU(inplace=True)
-        self.downsample = downsample
-        self.stride = stride
-
-        if planes == 64:
-            self.globalAvgPool = nn.AvgPool2d(56, stride=1)
-        elif planes == 128:
-            self.globalAvgPool = nn.AvgPool2d(28, stride=1)
-        elif planes == 256:
-            self.globalAvgPool = nn.AvgPool2d(14, stride=1)
-        elif planes == 512:
-            self.globalAvgPool = nn.AvgPool2d(7, stride=1)
-        self.fc1 = nn.Linear(in_features=planes * 4, out_features=round(planes / 4))
-        self.fc2 = nn.Linear(in_features=round(planes / 4), out_features=planes * 4)
-        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         residual = x
+        out = self.bottleneck(x)
 
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-
-        out = self.conv3(out)
-        out = self.bn3(out)
-
-        if self.downsample is not None:
+        if self.downsampling:
             residual = self.downsample(x)
-
-        original_out = out
-        out = self.globalAvgPool(out)
-        out = out.view(out.size(0), -1)
-        out = self.fc1(out)
-        out = self.relu(out)
-        out = self.fc2(out)
-        out = self.sigmoid(out)
-        out = out.view(out.size(0), out.size(1), 1, 1)
-        
-        out = out * original_out
 
         out += residual
         out = self.relu(out)
-
         return out
 
-class SENeXt(nn.Module):
 
-    def __init__(self, block, layers, num_group=32):
-        self.inplanes = 64
-        super(SENeXt, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
-                               bias=False)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.relu = nn.ReLU(inplace=True)
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, 64, layers[0], num_group)
-        #self.layer2 = self._make_layer(block, 128, layers[1], num_group, stride=2)
-        #self.layer3 = self._make_layer(block, 256, layers[2], num_group, stride=2)
-        #self.layer4 = self._make_layer(block, 512, layers[3], num_group, stride=2)
+class ResNeXt(nn.Module):
+    def __init__(self,blocks, blockkinds, num_classes=num_class):
+        super(ResNeXt,self).__init__()
+
+        self.blockkinds = blockkinds
+        self.conv1 = Conv1(in_planes = 3, places= 64)
+
+        if self.blockkinds == ResNeXtBlock:
+            self.expansion = 2
+            # 64 -> 128
+            self.layer1 = self.make_layer(in_places=64, places=128, block=blocks[0], stride=1)
+            # 256 -> 256
+            self.layer2 = self.make_layer(in_places=256, places=256, block=blocks[1], stride=2)
+            # 512 -> 512
+            self.layer3 = self.make_layer(in_places=512, places=512, block=blocks[2], stride=2)
+            # 1024 -> 1024
+            self.layer4 = self.make_layer(in_places=1024, places=1024, block=blocks[3], stride=2)
+
+            self.fc = nn.Linear(2048, num_classes)
+
         self.avgpool = nn.AvgPool2d(7, stride=1)
-        self.fc = nn.Linear(512 * block.expansion, 512)
-
         # #自己加的
-        self.layer6 = nn.Conv2d(256,512,(8,8),8,0)
+        self.layer5 = nn.Conv2d(2048,512,(1,1),1,0)
 
+        # 初始化网络结构
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
+                # 采用了何凯明的初始化方法
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
-    def _make_layer(self, block, planes, blocks, num_group, stride=1):
-        downsample = None
-        if stride != 1 or self.inplanes != planes * block.expansion:
-            downsample = nn.Sequential(
-                nn.Conv2d(self.inplanes, planes * block.expansion,
-                          kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(planes * block.expansion),
-            )
+    def make_layer(self, in_places, places, block, stride):
 
         layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, num_group=num_group))
-        self.inplanes = planes * block.expansion
-        for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes, num_group=num_group))
+        # torch.Size([1, 256, 56, 56])
+        layers.append(self.blockkinds(in_places, places, stride, downsampling =True))
+        for i in range(1, block):
+            layers.append(self.blockkinds(places*self.expansion, places))
 
         return nn.Sequential(*layers)
 
-    def forward(self, batch_images_tensor):
-        
-        #-----------------网络向前传播-------------#
-        x = self.conv1(batch_images_tensor)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
-        x = self.layer1(x)
-        x = self.layer6(x)
 
-        #图像数据占4行
+    def forward(self, batch_images_tensor):
+
+        # conv1层
+        x = self.conv1(batch_images_tensor)   # torch.Size([1, 64, 56, 56])
+
+        # conv2_x层
+        x = self.layer1(x)  # torch.Size([1, 256, 56, 56])
+        # conv3_x层
+        x = self.layer2(x)  # torch.Size([1, 512, 28, 28])
+        # conv4_x层
+        x = self.layer3(x)  # torch.Size([1, 1024, 14, 14])
+        # conv5_x层
+        x = self.layer4(x)  # torch.Size([1, 2048, 7, 7])
+
+        #x = self.avgpool(x) # torch.Size([1, 2048, 1, 1]) / torch.Size([1, 512])
+        #x = x.view(x.size(0), -1)   # torch.Size([1, 2048]) / torch.Size([1, 512])
+        #x = self.fc(x)      # torch.Size([1, 5])
+        x = self.layer5(x)
         x = x.reshape(len(batch_images_tensor),49,512)
-        #print("x_shape:",x.shape)
+
         return x
 
 ##############################################################
@@ -328,14 +323,71 @@ class Encoder(nn.Module):
             enc_self_attns.append(enc_self_attn)
         return enc_outputs, enc_self_attns
 
+#Decoder Layer
+class DecoderLayer(nn.Module):
+    def __init__(self):
+        super(DecoderLayer, self).__init__()
+        self.dec_self_attn = MultiHeadAttention()
+        self.dec_enc_attn = MultiHeadAttention()
+        self.pos_ffn = PoswiseFeedForwardNet()
+
+    def forward(self, dec_inputs, enc_outputs, dec_self_attn_mask, dec_enc_attn_mask):
+        '''
+        dec_inputs: [batch_size, tgt_len, d_model]
+        enc_outputs: [batch_size, src_len, d_model]
+        dec_self_attn_mask: [batch_size, tgt_len, tgt_len]
+        dec_enc_attn_mask: [batch_size, tgt_len, src_len]
+        '''
+        # dec_outputs: [batch_size, tgt_len, d_model], dec_self_attn: [batch_size, n_heads, tgt_len, tgt_len]
+        dec_outputs, dec_self_attn = self.dec_self_attn(dec_inputs, dec_inputs, dec_inputs, dec_self_attn_mask)
+        # dec_outputs: [batch_size, tgt_len, d_model], dec_enc_attn: [batch_size, h_heads, tgt_len, src_len]
+        
+        dec_outputs, dec_enc_attn = self.dec_enc_attn(dec_outputs, enc_outputs, enc_outputs, dec_enc_attn_mask)
+        dec_outputs = self.pos_ffn(dec_outputs) # [batch_size, tgt_len, d_model]
+        return dec_outputs, dec_self_attn, dec_enc_attn
+
+#Decoder
+class Decoder(nn.Module):
+    def __init__(self,tgt_vocab_size):
+        super(Decoder, self).__init__()
+        self.tgt_emb = nn.Embedding(tgt_vocab_size, d_model)
+        self.pos_emb = nn.Embedding.from_pretrained(get_sinusoid_encoding_table(tgt_vocab_size, d_model),freeze=True)
+        self.layers = nn.ModuleList([DecoderLayer() for _ in range(n_layers)])
+
+    def forward(self, dec_inputs, enc_inputs, enc_outputs):
+        '''
+        dec_inputs: [batch_size, tgt_len]
+        enc_intpus: [batch_size, src_len]
+        enc_outputs: [batsh_size, src_len, d_model]
+        '''
+        word_emb = self.tgt_emb(dec_inputs) # [batch_size, tgt_len, d_model]
+        pos_emb = self.pos_emb(dec_inputs) # [batch_size, tgt_len, d_model]
+        dec_outputs = word_emb + pos_emb
+        dec_self_attn_pad_mask = get_attn_pad_mask(dec_inputs, dec_inputs) # [batch_size, tgt_len, tgt_len]
+        dec_self_attn_subsequent_mask = get_attn_subsequence_mask(dec_inputs) # [batch_size, tgt_len]
+        dec_self_attn_mask = torch.gt((dec_self_attn_pad_mask + dec_self_attn_subsequent_mask), 0) # [batch_size, tgt_len, tgt_len]
+
+        dec_enc_attn_mask = get_attn_pad_mask(dec_inputs, enc_inputs) # [batc_size, tgt_len, src_len]
+        batch_size = enc_inputs.size(0)
+        add_mask = torch.zeros((batch_size,1,49)).bool().cuda()
+        dec_enc_attn_mask = torch.cat((dec_enc_attn_mask,add_mask),dim=2)
+
+        dec_self_attns, dec_enc_attns = [], []
+        for layer in self.layers:
+            # dec_outputs: [batch_size, tgt_len, d_model], dec_self_attn: [batch_size, n_heads, tgt_len, tgt_len], dec_enc_attn: [batch_size, h_heads, tgt_len, src_len]
+            dec_outputs, dec_self_attn, dec_enc_attn = layer(dec_outputs, enc_outputs, dec_self_attn_mask, dec_enc_attn_mask)
+            dec_self_attns.append(dec_self_attn)
+            dec_enc_attns.append(dec_enc_attn)
+        return dec_outputs, dec_self_attns, dec_enc_attns
 
 @META_ARCH_REGISTRY.register()
-class SENeXt_Encoder(nn.Module):
+class Resnext_tranformer(nn.Module):
     def __init__(self,cfg):
-        super(SENeXt_Encoder, self).__init__()
-        self.image_network = SENeXt(Bottleneck, [3, 4, 23, 3]).cuda()  #resnext101
-        self.encoder = Encoder(cfg.src_vocab_size)
-        self.projection = nn.Linear(d_model,cfg.tgt_vocab_size, bias=False)
+        super(Resnext_tranformer, self).__init__()
+        self.image_network = ResNeXt(resnext101_32x8d_params, ResNeXtBlock).cuda()  #resnext101
+        self.encoder = Encoder(cfg.Arguments1)
+        self.decoder = Decoder(cfg.Arguments2)
+        self.projection = nn.Linear(d_model,cfg.Arguments2, bias=False)
         self.loss_fun = nn.CrossEntropyLoss(ignore_index=0)
 
     def forward(self,data):
@@ -368,11 +420,12 @@ class SENeXt_Encoder(nn.Module):
 
         #----------------推理Transformer------------#
         enc_outputs, enc_self_attns = self.encoder(enc_inputs,image_output)
-        enc_outputs = enc_outputs.mean(dim=1)
+        # dec_outpus: [batch_size, tgt_len, d_model], dec_self_attns: [n_layers, batch_size, n_heads, tgt_len, tgt_len], dec_enc_attn: [n_layers, batch_size, tgt_len, src_len]
+        dec_outputs, dec_self_attns, dec_enc_attns = self.decoder(dec_inputs, enc_inputs, enc_outputs)
         
         #----------------------------解码生成损失函数---------------------------------#
-        dec_logits = self.projection(enc_outputs) # dec_logits: [batch_size, tgt_len, tgt_vocab_size]
-        outputs, enc_self_attns, = dec_logits.view(-1, dec_logits.size(-1)), enc_self_attns
+        dec_logits = self.projection(dec_outputs) # dec_logits: [batch_size, tgt_len, tgt_vocab_size]
+        outputs, enc_self_attns, dec_self_attns, dec_enc_attns = dec_logits.view(-1, dec_logits.size(-1)), enc_self_attns, dec_self_attns, dec_enc_attns
         if self.training:
             loss = self.loss_fun(outputs, dec_inputs.view(-1))    
             return loss
@@ -380,7 +433,6 @@ class SENeXt_Encoder(nn.Module):
             return outputs
 
 if __name__=="__main__":
-    
-    model = SENeXt_Encoder()
+    model = Resnext_tranformer()
     output = model()
     print("output:",output.shape)

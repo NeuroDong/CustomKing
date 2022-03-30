@@ -8,8 +8,12 @@ import torch.nn as nn
 import math
 import torch
 import numpy as np
-from .build import META_ARCH_REGISTRY
+from ..build import META_ARCH_REGISTRY
 
+num_class = 5
+resnext101_32x8d_params = [3, 4, 23, 3]
+
+# 定义Conv1层
 def Conv1(in_planes, places, stride=2):
     return nn.Sequential(
         nn.Conv2d(in_channels=in_planes,out_channels=places,kernel_size=7,stride=stride,padding=3, bias=False),
@@ -18,29 +22,34 @@ def Conv1(in_planes, places, stride=2):
         nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
     )
 
-class Bottleneck(nn.Module):
-    def __init__(self,in_places,places, stride=1,downsampling=False, expansion = 4):
-        super(Bottleneck,self).__init__()
+class ResNeXtBlock(nn.Module):
+    def __init__(self,in_places,places, stride=1,downsampling=False, expansion = 2, cardinality=32):
+        super(ResNeXtBlock,self).__init__()
         self.expansion = expansion
         self.downsampling = downsampling
 
+        # torch.Size([1, 256, 56, 56])
+        # torch.Size([1, 512, 28, 28])
+        # torch.Size([1, 1024, 14, 14])
+        # torch.Size([1, 2048, 7, 7])
         self.bottleneck = nn.Sequential(
-            nn.Conv2d(in_channels=in_places,out_channels=places,kernel_size=1,stride=1, bias=False),
+            nn.Conv2d(in_channels=in_places, out_channels=places, kernel_size=1, stride=1, bias=False),
             nn.BatchNorm2d(places),
             nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels=places, out_channels=places, kernel_size=3, stride=stride, padding=1, bias=False),
+            nn.Conv2d(in_channels=places, out_channels=places, kernel_size=3, stride=stride, padding=1, bias=False, groups=cardinality),  # 使用了组卷积
             nn.BatchNorm2d(places),
             nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels=places, out_channels=places*self.expansion, kernel_size=1, stride=1, bias=False),
-            nn.BatchNorm2d(places*self.expansion),
+            nn.Conv2d(in_channels=places, out_channels=places * self.expansion, kernel_size=1, stride=1, bias=False),
+            nn.BatchNorm2d(places * self.expansion),
         )
 
         if self.downsampling:
             self.downsample = nn.Sequential(
-                nn.Conv2d(in_channels=in_places, out_channels=places*self.expansion, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(places*self.expansion)
+                nn.Conv2d(in_channels=in_places, out_channels=places * self.expansion, kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(places * self.expansion)
             )
         self.relu = nn.ReLU(inplace=True)
+
     def forward(self, x):
         residual = x
         out = self.bottleneck(x)
@@ -52,51 +61,68 @@ class Bottleneck(nn.Module):
         out = self.relu(out)
         return out
 
-class ResNet(nn.Module):
-    def __init__(self,blocks, num_classes=1000, expansion = 4):
-        super(ResNet,self).__init__()
-        self.expansion = expansion
 
+class ResNet(nn.Module):
+    def __init__(self,blocks, blockkinds, num_classes=num_class):
+        super(ResNet,self).__init__()
+
+        self.blockkinds = blockkinds
         self.conv1 = Conv1(in_planes = 3, places= 64)
 
-        self.layer1 = self.make_layer(in_places = 64, places= 64, block=blocks[0], stride=1)
-        self.layer2 = self.make_layer(in_places = 256,places=128, block=blocks[1], stride=2)
-        self.layer3 = self.make_layer(in_places=512,places=256, block=blocks[2], stride=2)
-        self.layer4 = self.make_layer(in_places=1024,places=512, block=blocks[3], stride=2)
+        if self.blockkinds == ResNeXtBlock:
+            self.expansion = 2
+            # 64 -> 128
+            self.layer1 = self.make_layer(in_places=64, places=128, block=blocks[0], stride=1)
+            # 256 -> 256
+            self.layer2 = self.make_layer(in_places=256, places=256, block=blocks[1], stride=2)
+            # 512 -> 512
+            self.layer3 = self.make_layer(in_places=512, places=512, block=blocks[2], stride=2)
+            # 1024 -> 1024
+            self.layer4 = self.make_layer(in_places=1024, places=1024, block=blocks[3], stride=2)
+
+            self.fc = nn.Linear(2048, num_classes)
 
         self.avgpool = nn.AvgPool2d(7, stride=1)
-        self.fc = nn.Linear(2048,num_classes)
-
         # #自己加的
         self.layer5 = nn.Conv2d(2048,512,(1,1),1,0)
 
+        # 初始化网络结构
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
+                # 采用了何凯明的初始化方法
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
     def make_layer(self, in_places, places, block, stride):
+
         layers = []
-        layers.append(Bottleneck(in_places, places,stride, downsampling =True))
+        # torch.Size([1, 256, 56, 56])
+        layers.append(self.blockkinds(in_places, places, stride, downsampling =True))
         for i in range(1, block):
-            layers.append(Bottleneck(places*self.expansion, places))
+            layers.append(self.blockkinds(places*self.expansion, places))
 
         return nn.Sequential(*layers)
 
 
     def forward(self, batch_images_tensor):
-        x = self.conv1(batch_images_tensor)
 
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
+        # conv1层
+        x = self.conv1(batch_images_tensor)   # torch.Size([1, 64, 56, 56])
 
-        #x = self.avgpool(x)
-        #x = x.view(x.size(0), -1)
-        #x = self.fc(x)
+        # conv2_x层
+        x = self.layer1(x)  # torch.Size([1, 256, 56, 56])
+        # conv3_x层
+        x = self.layer2(x)  # torch.Size([1, 512, 28, 28])
+        # conv4_x层
+        x = self.layer3(x)  # torch.Size([1, 1024, 14, 14])
+        # conv5_x层
+        x = self.layer4(x)  # torch.Size([1, 2048, 7, 7])
+
+        #x = self.avgpool(x) # torch.Size([1, 2048, 1, 1]) / torch.Size([1, 512])
+        #x = x.view(x.size(0), -1)   # torch.Size([1, 2048]) / torch.Size([1, 512])
+        #x = self.fc(x)      # torch.Size([1, 5])
         x = self.layer5(x)
         x = x.reshape(len(batch_images_tensor),49,512)
 
@@ -246,64 +272,72 @@ class PoswiseFeedForwardNet(nn.Module):
         output = self.fc(inputs) 
         return self.norm(output + residual) # [batch_size, seq_len, d_model]
 
-#Encoder Layer
-class EncoderLayer(nn.Module):
+#Decoder Layer
+class DecoderLayer(nn.Module):
     def __init__(self):
-        super(EncoderLayer, self).__init__()
-        self.enc_self_attn = MultiHeadAttention()
+        super(DecoderLayer, self).__init__()
+        self.dec_self_attn = MultiHeadAttention()
+        self.dec_enc_attn = MultiHeadAttention()
         self.pos_ffn = PoswiseFeedForwardNet()
 
-    def forward(self, enc_inputs, enc_self_attn_mask):
+    def forward(self, dec_inputs, enc_outputs, dec_self_attn_mask, dec_enc_attn_mask):
         '''
-        enc_inputs: [batch_size, src_len, d_model]
-        enc_self_attn_mask: [batch_size, src_len, src_len]
+        dec_inputs: [batch_size, tgt_len, d_model]
+        enc_outputs: [batch_size, src_len, d_model]
+        dec_self_attn_mask: [batch_size, tgt_len, tgt_len]
+        dec_enc_attn_mask: [batch_size, tgt_len, src_len]
         '''
-        # enc_outputs: [batch_size, src_len, d_model], attn: [batch_size, n_heads, src_len, src_len]
+        # dec_outputs: [batch_size, tgt_len, d_model], dec_self_attn: [batch_size, n_heads, tgt_len, tgt_len]
+        dec_outputs, dec_self_attn = self.dec_self_attn(dec_inputs, dec_inputs, dec_inputs, dec_self_attn_mask)
+        # dec_outputs: [batch_size, tgt_len, d_model], dec_enc_attn: [batch_size, h_heads, tgt_len, src_len]
         
+        dec_outputs, dec_enc_attn = self.dec_enc_attn(dec_outputs, enc_outputs, enc_outputs, dec_enc_attn_mask)
+        dec_outputs = self.pos_ffn(dec_outputs) # [batch_size, tgt_len, d_model]
+        return dec_outputs, dec_self_attn, dec_enc_attn
 
-        enc_outputs, attn = self.enc_self_attn(enc_inputs, enc_inputs, enc_inputs, enc_self_attn_mask) # enc_inputs to same Q,K,V
-        enc_outputs = self.pos_ffn(enc_outputs) # enc_outputs: [batch_size, src_len, d_model]
-        return enc_outputs, attn
+#Decoder
+class Decoder(nn.Module):
+    def __init__(self,tgt_vocab_size):
+        super(Decoder, self).__init__()
+        self.tgt_emb = nn.Embedding(tgt_vocab_size, d_model)
+        self.pos_emb = nn.Embedding.from_pretrained(get_sinusoid_encoding_table(tgt_vocab_size, d_model),freeze=True)
+        self.layers = nn.ModuleList([DecoderLayer() for _ in range(n_layers)])
 
-#Encoder,src_vocab_size代表输入字典的长度
-class Encoder(nn.Module):
-    def __init__(self,src_vocab_size):
-        super(Encoder, self).__init__()
-        self.src_emb = nn.Embedding(src_vocab_size, d_model) #得到词嵌入
-        self.pos_emb = nn.Embedding.from_pretrained(get_sinusoid_encoding_table(src_vocab_size, d_model),freeze=True) #位置编码得到位置嵌入
-        self.layers = nn.ModuleList([EncoderLayer() for _ in range(n_layers)])
-
-    def forward(self, enc_inputs,image_output):
+    def forward(self, dec_inputs, enc_inputs, enc_outputs):
         '''
-        enc_inputs: [batch_size, src_len]
+        dec_inputs: [batch_size, tgt_len]
+        enc_intpus: [batch_size, src_len]
+        enc_outputs: [batsh_size, src_len, d_model]
         '''
-        word_emb = self.src_emb(enc_inputs) # [batch_size, src_len, d_model]
-        pos_emb = self.pos_emb(enc_inputs) # [batch_size, src_len, d_model]
-        enc_outputs = word_emb + pos_emb
+        word_emb = self.tgt_emb(dec_inputs) # [batch_size, tgt_len, d_model]
+        pos_emb = self.pos_emb(dec_inputs) # [batch_size, tgt_len, d_model]
+        dec_outputs = word_emb + pos_emb
+        dec_self_attn_pad_mask = get_attn_pad_mask(dec_inputs, dec_inputs) # [batch_size, tgt_len, tgt_len]
+        dec_self_attn_subsequent_mask = get_attn_subsequence_mask(dec_inputs) # [batch_size, tgt_len]
+        dec_self_attn_mask = torch.gt((dec_self_attn_pad_mask + dec_self_attn_subsequent_mask), 0) # [batch_size, tgt_len, tgt_len]
 
-        enc_outputs = torch.cat((enc_outputs,image_output),dim=1) #融合过程数据和图像数据
-        
-        enc_self_attn_mask = get_attn_pad_mask(enc_inputs, enc_inputs) # [batch_size, src_len, src_len]
+        dec_enc_attn_mask = get_attn_pad_mask(dec_inputs, enc_inputs) # [batc_size, tgt_len, src_len]
         batch_size = enc_inputs.size(0)
-        add_mask = torch.zeros((batch_size,35,49)).bool().cuda()
-        enc_self_attn_mask = torch.cat((enc_self_attn_mask,add_mask),dim=2)
-        add_mask = torch.zeros((batch_size,49,84)).bool().cuda()
-        enc_self_attn_mask = torch.cat((enc_self_attn_mask,add_mask),dim=1)
-        
-        enc_self_attns = []
+        add_mask = torch.zeros((batch_size,1,49)).bool().cuda()
+        dec_enc_attn_mask = torch.cat((dec_enc_attn_mask,add_mask),dim=2)
+
+        dec_self_attns, dec_enc_attns = [], []
         for layer in self.layers:
-            # enc_outputs: [batch_size, src_len, d_model], enc_self_attn: [batch_size, n_heads, src_len, src_len]
-            enc_outputs, enc_self_attn = layer(enc_outputs, enc_self_attn_mask)
-            enc_self_attns.append(enc_self_attn)
-        return enc_outputs, enc_self_attns
+            # dec_outputs: [batch_size, tgt_len, d_model], dec_self_attn: [batch_size, n_heads, tgt_len, tgt_len], dec_enc_attn: [batch_size, h_heads, tgt_len, src_len]
+            dec_outputs, dec_self_attn, dec_enc_attn = layer(dec_outputs, enc_outputs, dec_self_attn_mask, dec_enc_attn_mask)
+            dec_self_attns.append(dec_self_attn)
+            dec_enc_attns.append(dec_enc_attn)
+        return dec_outputs, dec_self_attns, dec_enc_attns
 
 @META_ARCH_REGISTRY.register()
-class Resnet_encoder(nn.Module):
+class Resnext_decoder(nn.Module):
     def __init__(self,cfg):
-        super(Resnet_encoder, self).__init__()
-        self.image_network = ResNet([3, 4, 23, 3])
-        self.encoder = Encoder(cfg.src_vocab_size)
-        self.projection = nn.Linear(d_model,cfg.tgt_vocab_size, bias=False)
+        super(Resnext_decoder, self).__init__()
+        self.image_network = ResNet(resnext101_32x8d_params, ResNeXtBlock).cuda()  #resnext101
+        self.src_emb = nn.Embedding(cfg.Arguments1, d_model) #得到词嵌入
+        self.pos_emb = nn.Embedding.from_pretrained(get_sinusoid_encoding_table(cfg.Arguments1, d_model),freeze=True)
+        self.decoder = Decoder(cfg.Arguments2)
+        self.projection = nn.Linear(d_model,cfg.Arguments2, bias=False)
         self.loss_fun = nn.CrossEntropyLoss(ignore_index=0)
 
     def forward(self,data):
@@ -335,12 +369,17 @@ class Resnet_encoder(nn.Module):
         image_output = self.image_network(batch_images_tensor)
 
         #----------------推理Transformer------------#
-        enc_outputs, enc_self_attns = self.encoder(enc_inputs,image_output)
-        enc_outputs = enc_outputs.mean(dim=1)
+        word_emb = self.src_emb(enc_inputs) # [batch_size, src_len, d_model]
+        pos_emb = self.pos_emb(enc_inputs) # [batch_size, src_len, d_model]
+        enc_outputs = word_emb + pos_emb
+        enc_outputs = torch.cat((enc_outputs,image_output),dim=1)
+
+        # dec_outpus: [batch_size, tgt_len, d_model], dec_self_attns: [n_layers, batch_size, n_heads, tgt_len, tgt_len], dec_enc_attn: [n_layers, batch_size, tgt_len, src_len]
+        dec_outputs, dec_self_attns, dec_enc_attns = self.decoder(dec_inputs, enc_inputs, enc_outputs)
         
         #----------------------------解码生成损失函数---------------------------------#
-        dec_logits = self.projection(enc_outputs) # dec_logits: [batch_size, tgt_len, tgt_vocab_size]
-        outputs, enc_self_attns = dec_logits.view(-1, dec_logits.size(-1)), enc_self_attns
+        dec_logits = self.projection(dec_outputs) # dec_logits: [batch_size, tgt_len, tgt_vocab_size]
+        outputs, dec_self_attns, dec_enc_attns = dec_logits.view(-1, dec_logits.size(-1)) ,dec_self_attns, dec_enc_attns
         if self.training:
             loss = self.loss_fun(outputs, dec_inputs.view(-1))    
             return loss
@@ -348,6 +387,6 @@ class Resnet_encoder(nn.Module):
             return outputs
 
 if __name__=="__main__":
-    model = Resnet_encoder()
+    model = Resnext_decoder()
     output = model()
     print("output:",output.shape)

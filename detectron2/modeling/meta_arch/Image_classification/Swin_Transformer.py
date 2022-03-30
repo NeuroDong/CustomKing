@@ -2,7 +2,7 @@ import torch
 from torch import nn, einsum
 import numpy as np
 from einops import rearrange, repeat
-from .build import META_ARCH_REGISTRY
+from ..build import META_ARCH_REGISTRY
 
 
 class CyclicShift(nn.Module):
@@ -213,7 +213,7 @@ class SwinTransformer(nn.Module):
 
         self.mlp_head = nn.Sequential(
             nn.LayerNorm(hidden_dim * 8),
-            nn.Linear(hidden_dim * 8, cfg.NUM_CLASSES)
+            nn.Linear(hidden_dim * 8, cfg.Arguments1)
         )
 
     def forward(self, data):
@@ -224,7 +224,7 @@ class SwinTransformer(nn.Module):
         batch_label = []
         for i in range(0,batchsize,1):
             batch_images.append(data[i]["image"])
-            batch_label.append(int(float(data[i]["label"])))
+            batch_label.append(int(float(data[i]["y"])))
         batch_images=[image.tolist() for image in batch_images]
         batch_images_tensor = torch.tensor(batch_images,dtype=torch.float).cuda()
 

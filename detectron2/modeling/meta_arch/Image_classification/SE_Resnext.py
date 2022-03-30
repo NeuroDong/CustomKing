@@ -3,7 +3,7 @@ New for ResNeXt:
 1. Wider bottleneck
 2. Add group for conv2
 '''
-from .build import META_ARCH_REGISTRY
+from ..build import META_ARCH_REGISTRY
 import torch.nn as nn
 import math
 import torch
@@ -122,7 +122,7 @@ class SE_ResNeXt(nn.Module):
         batch_label = []
         for i in range(0,batchsize,1):
             batch_images.append(data[i]["image"])
-            batch_label.append(int(float(data[i]["label"])))
+            batch_label.append(int(float(data[i]["y"])))
         batch_images=[image.tolist() for image in batch_images]
         batch_images_tensor = torch.tensor(batch_images,dtype=torch.float).cuda()
 
@@ -154,7 +154,7 @@ class SE_ResNeXt(nn.Module):
 def se_resnext_50(cfg):
     """Constructs a ResNeXt-50 model.
     """
-    num_classes = cfg.NUM_CLASSES
+    num_classes = cfg.Arguments1
     model = SE_ResNeXt(Bottleneck, [3, 4, 6, 3], num_classes)
     return model
 
@@ -162,7 +162,7 @@ def se_resnext_50(cfg):
 def se_resnext_101(cfg):
     """Constructs a ResNeXt-101 model.
     """
-    num_classes = cfg.NUM_CLASSES
+    num_classes = cfg.Arguments1
     model = SE_ResNeXt(Bottleneck, [3, 4, 23, 3],num_classes)
     return model
 
@@ -170,7 +170,7 @@ def se_resnext_101(cfg):
 def se_resnext_152(cfg):
     """Constructs a ResNeXt-152 model.
     """
-    num_classes = cfg.NUM_CLASSES
+    num_classes = cfg.Arguments1
     model = SE_ResNeXt(Bottleneck, [3, 8, 36, 3],num_classes)
     return model
 

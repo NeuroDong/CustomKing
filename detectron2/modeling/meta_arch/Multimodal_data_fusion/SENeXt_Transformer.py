@@ -8,9 +8,9 @@ import torch.nn as nn
 import math
 import torch
 import numpy as np
-from .build import META_ARCH_REGISTRY
+from ..build import META_ARCH_REGISTRY
 
-from detectron2.modeling.meta_arch import SE_Resnext
+from detectron2.modeling.meta_arch.Image_classification import SE_Resnext
 
 class Bottleneck(nn.Module):
     expansion = 4
@@ -70,29 +70,28 @@ class Bottleneck(nn.Module):
 
         out += residual
         out = self.relu(out)
-
+        
         return out
 
-class SE_ResNeXt(nn.Module):
+class SENeXt(nn.Module):
 
     def __init__(self, block, layers, num_group=32):
         self.inplanes = 64
-        super(SE_ResNeXt, self).__init__()
+        super(SENeXt, self).__init__()
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, layers[0], num_group)
-        self.layer2 = self._make_layer(block, 128, layers[1], num_group, stride=2)
-        self.layer3 = self._make_layer(block, 256, layers[2], num_group, stride=2)
-        self.layer4 = self._make_layer(block, 512, layers[3], num_group, stride=2)
+        #self.layer2 = self._make_layer(block, 128, layers[1], num_group, stride=2)
+        #self.layer3 = self._make_layer(block, 256, layers[2], num_group, stride=2)
+        #self.layer4 = self._make_layer(block, 512, layers[3], num_group, stride=2)
         self.avgpool = nn.AvgPool2d(7, stride=1)
         self.fc = nn.Linear(512 * block.expansion, 512)
 
         # #自己加的
-        self.layer5 = nn.Conv2d(2048,512,(1,1),1,0)
-        #self.layer6 = nn.Conv2d(256,512,(8,8),8,0)
+        self.layer6 = nn.Conv2d(256,512,(8,8),8,0)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -122,26 +121,12 @@ class SE_ResNeXt(nn.Module):
     def forward(self, batch_images_tensor):
         
         #-----------------网络向前传播-------------#
-        x = self.conv1(batch_images_tensor)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
-        x = self.layer5(x)
-        
-        #print("x_shape:",x.shape)
-        #x = self.layer6(x)
-        
-        #print("x_shape:",x.shape)
-        #x = self.avgpool(x)
-        #x = x.view(x.size(0), -1)
-        #图像数据只占一行
-        #x = self.fc(x)
-        #return x.unsqueeze(1)
-
+        x = self.conv1(batch_images_tensor) #torch.Size([1, 64, 112, 112])
+        x = self.bn1(x) #torch.Size([1, 64, 112, 112])
+        x = self.relu(x) #torch.Size([1, 64, 112, 112])
+        x = self.maxpool(x) #torch.Size([1, 64, 56, 56])
+        x = self.layer1(x) #torch.Size([1, 256, 56, 56])
+        x = self.layer6(x) #torch.Size([1, 512, 7, 7])
         #图像数据占4行
         x = x.reshape(len(batch_images_tensor),49,512)
         #print("x_shape:",x.shape)
@@ -400,13 +385,13 @@ class Decoder(nn.Module):
         return dec_outputs, dec_self_attns, dec_enc_attns
 
 @META_ARCH_REGISTRY.register()
-class Se_resnext_tranformer(nn.Module):
+class SENeXt_Transformer(nn.Module):
     def __init__(self,cfg):
-        super(Se_resnext_tranformer, self).__init__()
-        self.image_network = SE_ResNeXt(Bottleneck, [3, 4, 23, 3]).cuda()  #resnext101
-        self.encoder = Encoder(cfg.src_vocab_size)
-        self.decoder = Decoder(cfg.tgt_vocab_size)
-        self.projection = nn.Linear(d_model,cfg.tgt_vocab_size, bias=False)
+        super(SENeXt_Transformer, self).__init__()
+        self.image_network = SENeXt(Bottleneck, [3, 4, 23, 3]).cuda()  #resnext101
+        self.encoder = Encoder(cfg.Arguments1)
+        self.decoder = Decoder(cfg.Arguments2)
+        self.projection = nn.Linear(d_model,cfg.Arguments2, bias=False)
         self.loss_fun = nn.CrossEntropyLoss(ignore_index=0)
 
     def forward(self,data):
@@ -436,10 +421,9 @@ class Se_resnext_tranformer(nn.Module):
         #----------------------------网络向前推理------------------------------------#
         #-----------------推理SE-Resnext------------#
         image_output = self.image_network(batch_images_tensor)
-
         #----------------推理Transformer------------#
         enc_outputs, enc_self_attns = self.encoder(enc_inputs,image_output)
-        # dec_outpus: [batch_size, tgt_len, d_model], dec_self_attns: [n_layers, batch_size, n_heads, tgt_len, tgt_len], dec_enc_attn: [n_layers, batch_size, tgt_len, src_len]
+        # dec_outpus: [batch_size, tgt_len, d_model], dec_self_attns: [n_layers, batch_size, n_heads, tgt_len, tgt_len], dec_enc_attn: [n_layers, batch_size, tgt_len, src_len]  
         dec_outputs, dec_self_attns, dec_enc_attns = self.decoder(dec_inputs, enc_inputs, enc_outputs)
         
         #----------------------------解码生成损失函数---------------------------------#
@@ -453,6 +437,6 @@ class Se_resnext_tranformer(nn.Module):
 
 if __name__=="__main__":
     
-    model = Se_resnext_tranformer()
+    model = SENeXt_Transformer()
     output = model()
     print("output:",output.shape)
