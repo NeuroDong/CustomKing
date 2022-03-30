@@ -16,11 +16,14 @@ CUDA10.1
 Pytorch1.8.1
 
 # Using tutorials
+## Use built-in algorithms and data
 All the built-in algorithms, datasets, and pre-trained weights can be trained or evaluated by running the following code, which just need change the parameters accordingly. For the selection of parameters, see 
 https://github.com/dongdongdong1217/Detectron2-FC/tree/main/tools#readme.
 ```java  
   python3 tool/mian.py
 ```
+## Use custom networks and data
+Please contact email: dongjinzong@126.com
 
 # Existing examples
 ## A novel detection method for the close time of the taphole of blast furnace based on two-stage multimodal data fusion
