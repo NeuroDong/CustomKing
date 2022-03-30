@@ -1,16 +1,21 @@
 Please change the parameter for algorithm selection: cfg.MODEL.META_ARCHITECTURE, which has the following options.
+
+# Image Classification Network
 ```java  
 se_resnext_101
-Transformer_cls
-Se_resnext_tranformer
 VIT
 SwinTransformer
+ResNeXt101
+Sk_coatnet_0
+```
+```java
+Transformer_cls
+Se_resnext_tranformer
 SENeXt_Transformer
 SENeXt_Encoder
 SENeXt_Decoder
 Se_resnext_Decoder
 Se_resnext_Encoder
-ResNeXt101
 Resnext_tranformer
 Resnext_decoder
 Resnext_encoder
