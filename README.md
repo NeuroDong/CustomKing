@@ -1,4 +1,4 @@
-English|中文
+English | [中文](https://github.com/dongdongdong1217/Detectron2-All/blob/main/README_ch.md)
 
 # What is Detectron2-FC
 We have been working hard in two directions: 
