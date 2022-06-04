@@ -1,5 +1,7 @@
 English | [简体中文](https://github.com/dongdongdong1217/Detectron2-All/blob/main/README_ch.md)
 
+https://github.com/dongdongdong1217/Detectron2-All/blob/main/docs/NeuroDong3.jpg
+
 # What is Detectron2-FC
 We have been working hard in two directions: 
 
