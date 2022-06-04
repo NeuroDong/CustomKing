@@ -23,10 +23,5 @@ https://github.com/dongdongdong1217/Detectron2-All/tree/main/tools#readme.
 ## Use custom networks and data
 See: https://detectron2.readthedocs.io/en/latest/tutorials/index.html, or contact the author for a discussion. The author's email address is dongjinzong@126.com, WeChat QR code see the logo image above.
 
-# Existing examples
-## A novel detection method for the close time of the taphole of blast furnace based on two-stage multimodal data fusion
-See: https://github.com/dongdongdong1217/SENeXt-Transformer
-
-## Object detection and image segmentation
-Detectron2's own algorithm see: https://github.com/facebookresearch/detectron2/blob/main/MODEL_ZOO.md
+# Existing built-in algorithms and datasets
 
