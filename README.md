@@ -14,7 +14,7 @@ CUDA10.1
 Pytorch1.8.1
 
 # Using tutorials
-## Use built-in algorithms and data
+## Use the detectron2-All built-in algorithms and datasets
 All the built-in algorithms, datasets, and pre-trained weights can be trained or evaluated by running the following code, which just need change the parameters accordingly. For the selection of parameters, see 
 https://github.com/dongdongdong1217/Detectron2-FC/tree/main/tools#readme.
 ```java  
