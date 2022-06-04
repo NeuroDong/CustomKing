@@ -1,3 +1,5 @@
+English|中文
+
 # What is Detectron2-FC
 We have been working hard in two directions: 
 
