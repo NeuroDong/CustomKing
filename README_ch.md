@@ -23,3 +23,5 @@ Pytorch1.8.1
 ```
 ## 自定义算法和数据集
 见：https://detectron2.readthedocs.io/en/latest/tutorials/index.html ，或者联系作者进行讨论。作者邮箱为dongjinzong@126.com, 微信二维码见上面的logo图像。
+
+# 现有内置算法与数据集
