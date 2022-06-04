@@ -2,7 +2,7 @@ English | [简体中文](https://github.com/dongdongdong1217/Detectron2-All/blob
 
 ![Image text](https://github.com/dongdongdong1217/Detectron2-All/blob/main/docs/NeuroDong3.jpg)
 
-# What is Detectron2-FC
+# What is Detectron2-All
 We have been working hard in two directions: 
 
 1)Quickly build complex deep learning network algorithm for training and prediction; 
