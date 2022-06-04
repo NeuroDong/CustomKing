@@ -14,3 +14,10 @@ Ubuntu20.04
 CUDA10.1
 
 Pytorch1.8.1
+
+# 使用教程
+## 使用内置的算法和数据集
+所有内置算法、数据集和预训练权重都可以通过运行以下代码进行训练或评估，只需相应地更改参数即可。有关参数的选择，请见：https://github.com/dongdongdong1217/Detectron2-FC/tree/main/tools#readme.
+```java  
+  python3 tool/mian.py
+```
