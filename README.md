@@ -21,7 +21,7 @@ https://github.com/dongdongdong1217/Detectron2-All/tree/main/tools#readme.
   python3 tool/mian.py
 ```
 ## Use custom networks and data
-Please contact email: dongjinzong@126.com
+See: https://detectron2.readthedocs.io/en/latest/tutorials/index.html, or contact the author for a discussion. The author's email address is dongjinzong@126.com, WeChat QR code see the logo image above.
 
 # Existing examples
 ## A novel detection method for the close time of the taphole of blast furnace based on two-stage multimodal data fusion
