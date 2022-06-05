@@ -9,8 +9,11 @@
 ## 2.1 Linux和macOS系统的环境安装
 见Detectron2的安装教程：https://detectron2.readthedocs.io/en/latest/tutorials/install.html 。
 linux环境如下：
+
 Ubuntu20.04
+
 CUDA10.1
+
 Pytorch1.8.1
 ## 2.2 Windows系统的环境安装
 见detectron2-windows的安装教程:https://github.com/DGMaxime/detectron2-windows 。
