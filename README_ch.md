@@ -632,4 +632,4 @@ cfg.DATASETS.TEST = "配置参数名" #测试数据集
 # 6. 近期更新
 - **2022.6.5 项目结构重组**
   - 发布新加入的公共算法、数据集，并已列表的形式展示在第4、5节
-  - 发布可用于多个模型的训练过程损失函数值对比的功能，见
+  - 发布可用于多个模型的训练过程损失函数值对比的功能，见：https://github.com/NeuroDong/Detectron2-All/blob/main/visualizate/Classification/trainloss_comparison.py.
