@@ -12,7 +12,7 @@
 见Detectron2的安装教程：https://detectron2.readthedocs.io/en/latest/tutorials/install.html 。
 
 ## 2.2 Windows系统的环境安装
-见detectron2-windows的安装教程:https://github.com/DGMaxime/detectron2-windows 。
+见detectron2-windows的安装教程: https://github.com/DGMaxime/detectron2-windows 。
 
 # 3. 使用教程
 ## 3.1 使用内置的算法和数据集
