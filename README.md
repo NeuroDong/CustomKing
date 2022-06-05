@@ -20,6 +20,7 @@ https://github.com/dongdongdong1217/Detectron2-All/tree/main/tools#readme.
 ```java  
   python3 tool/mian.py
 ```
+If you want to change more configuration parameters, see: https://github.com/dongdongdong1217/Detectron2-All/blob/main/detectron2/config/defaults.py.
 ## Use custom networks and data
 See: https://detectron2.readthedocs.io/en/latest/tutorials/index.html, or contact the author for a discussion. The author's email address is dongjinzong@126.com, WeChat QR code see the logo image above.
 
