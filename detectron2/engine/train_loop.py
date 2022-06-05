@@ -179,7 +179,7 @@ class TrainerBase:
         for h in self._hooks:
             h.after_step()
 
-    def run_step(self):
+    def run_step(self): #这个方法的代码需要在子类里面进行重写
         raise NotImplementedError
 
     def state_dict(self):

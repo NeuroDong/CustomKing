@@ -236,9 +236,13 @@ class CommonMetricPrinter(EventWriter):
             # or when SimpleTrainer is not used
             data_time = None
         try:
-            iter_time = storage.history("time").global_avg()
+            iter_time = storage.history("train_time").global_avg()
         except KeyError:
             iter_time = None
+        try:
+            backward_time = storage.history("a_iter_backward_time").global_avg()
+        except KeyError:
+            backward_time = None    
         try:
             lr = "{:.5g}".format(storage.history("lr").latest())
         except KeyError:
@@ -253,7 +257,7 @@ class CommonMetricPrinter(EventWriter):
 
         # NOTE: max_mem is parsed by grep in "dev/parse_results.sh"
         self.logger.info(
-            " {eta}iter: {iter}  {losses}  {time}{data_time}lr: {lr}  {memory}".format(
+            " {eta}iter: {iter}  {losses} {train_time} {a_iter_backward_time}{data_time}lr: {lr}  {memory}".format(
                 eta=f"eta: {eta_string}  " if eta_string else "",
                 iter=iteration,
                 losses="  ".join(
@@ -263,7 +267,8 @@ class CommonMetricPrinter(EventWriter):
                         if "loss" in k
                     ]
                 ),
-                time="time: {:.4f}  ".format(iter_time) if iter_time is not None else "",
+                train_time="train_time: {:.4f}  ".format(iter_time) if iter_time is not None else "",
+                a_iter_backward_time="a_iter_backward_time: {:.4f}  ".format(backward_time) if backward_time is not None else "",
                 data_time="data_time: {:.4f}  ".format(data_time) if data_time is not None else "",
                 lr=lr,
                 memory="max_mem: {:.0f}M".format(max_mem_mb) if max_mem_mb is not None else "",

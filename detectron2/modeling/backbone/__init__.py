@@ -12,6 +12,8 @@ from .resnet import (
     make_stage,
     BottleneckBlock,
 )
+from .CIF import build_cif_backbone
+from.CIF_MultiHead import build_cif_multihead_backbone
 
 __all__ = [k for k in globals().keys() if not k.startswith("_")]
 # TODO can expose more resnet blocks after careful consideration

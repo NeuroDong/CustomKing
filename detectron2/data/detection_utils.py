@@ -11,6 +11,7 @@ from typing import List, Union
 import pycocotools.mask as mask_util
 import torch
 from PIL import Image
+import torchvision
 
 from detectron2.structures import (
     BitMasks,

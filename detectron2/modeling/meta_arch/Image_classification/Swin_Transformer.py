@@ -194,7 +194,7 @@ class StageModule(nn.Module):
 
 @META_ARCH_REGISTRY.register()
 class SwinTransformer(nn.Module):
-    def __init__(self,cfg, hidden_dim=96,layers=(2, 2, 6, 2),heads=(3, 6, 12, 24), channels=3, head_dim=32, window_size=7,
+    def __init__(self,cfg, hidden_dim=96,layers=(2, 2, 6, 2),heads=(3, 6, 12, 24), channels=3, head_dim=32, window_size=1,
                  downscaling_factors=(4, 2, 2, 2), relative_pos_embedding=True):
         super().__init__()
 
@@ -213,7 +213,7 @@ class SwinTransformer(nn.Module):
 
         self.mlp_head = nn.Sequential(
             nn.LayerNorm(hidden_dim * 8),
-            nn.Linear(hidden_dim * 8, cfg.Arguments1)
+            nn.Linear(hidden_dim * 8, cfg.Arguments2)
         )
 
     def forward(self, data):

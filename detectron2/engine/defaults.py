@@ -106,7 +106,7 @@ Run on multiple machines:
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--config-file", default="", metavar="FILE", help="path to config file")
+    parser.add_argument("--config-file", default="configs/Newly_added/CIF_D.yaml", metavar="FILE", help="path to config file")
     parser.add_argument(
         "--resume",
         action="store_true",
@@ -245,7 +245,7 @@ def default_writers(output_dir: str, max_iter: Optional[int] = None):
         # It may not always print what you want to see, since it prints "common" metrics only.
         CommonMetricPrinter(max_iter),
         JSONWriter(os.path.join(output_dir, "metrics.json")),
-        TensorboardXWriter(output_dir),
+        #TensorboardXWriter(output_dir),
     ]
 
 
@@ -374,13 +374,12 @@ class DefaultTrainer(TrainerBase):
 
         # Assume these objects must be constructed in this order.
         model = self.build_model(cfg)
+        logger.info("Total number of paramerters in networks is {}  ".format(sum(x.numel() for x in model.parameters())))
         optimizer = self.build_optimizer(cfg, model)
         data_loader = self.build_train_loader(cfg)
 
         model = create_ddp_model(model, broadcast_buffers=False)
-        self._trainer = (AMPTrainer if cfg.SOLVER.AMP.ENABLED else SimpleTrainer)(
-            model, data_loader, optimizer
-        )
+        self._trainer = (AMPTrainer if cfg.SOLVER.AMP.ENABLED else SimpleTrainer)(model, data_loader, optimizer)
 
         self.scheduler = self.build_lr_scheduler(cfg, optimizer)
         self.checkpointer = DetectionCheckpointer(
@@ -424,7 +423,7 @@ class DefaultTrainer(TrainerBase):
             list[HookBase]:
         """
         cfg = self.cfg.clone()
-        cfg.defrost()
+        cfg.defrost() #解冻参数，使得参数可变
         cfg.DATALOADER.NUM_WORKERS = 0  # save some memory and time for PreciseBN
 
         ret = [
@@ -481,7 +480,7 @@ class DefaultTrainer(TrainerBase):
         Returns:
             OrderedDict of results, if evaluation is enabled. Otherwise None.
         """
-        super().train(self.start_iter, self.max_iter)
+        super().train(self.start_iter, self.max_iter) #在这里面训练
         if len(self.cfg.TEST.EXPECTED_RESULTS) and comm.is_main_process():
             assert hasattr(
                 self, "_last_eval_results"

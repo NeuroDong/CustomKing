@@ -53,11 +53,14 @@ class FPN(Backbone):
         assert in_features, in_features
 
         # Feature map strides and channels from the bottom up network (e.g. ResNet)
-        input_shapes = bottom_up.output_shape()
+        input_shapes = bottom_up.output_shape() #其实就是backbone
+        #从Shapespec获取backbone的输出步长
         strides = [input_shapes[f].stride for f in in_features]
+        #从Shapespec获取backbone的输出通道
         in_channels_per_feature = [input_shapes[f].channels for f in in_features]
 
         _assert_strides_are_log2_contiguous(strides)
+
         lateral_convs = []
         output_convs = []
 
@@ -241,7 +244,7 @@ def build_retinanet_resnet_fpn_backbone(cfg, input_shape: ShapeSpec):
         backbone (Backbone): backbone module, must be a subclass of :class:`Backbone`.
     """
     bottom_up = build_resnet_backbone(cfg, input_shape)
-    in_features = cfg.MODEL.FPN.IN_FEATURES
+    in_features = cfg.MODEL.FPN.IN_FEATURES  #['res3', 'res4', 'res5']
     out_channels = cfg.MODEL.FPN.OUT_CHANNELS
     in_channels_p6p7 = bottom_up.output_shape()["res5"].channels
     backbone = FPN(

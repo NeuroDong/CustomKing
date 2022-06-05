@@ -25,6 +25,9 @@ _C = CN()
 # changes happen. It's recommended to keep a VERSION in your config file.
 _C.VERSION = 2
 
+#------------------------------------------------------#
+#Original parameters
+#------------------------------------------------------#
 _C.MODEL = CN()
 _C.MODEL.LOAD_PROPOSALS = False
 _C.MODEL.MASK_ON = False
@@ -514,9 +517,9 @@ _C.SOLVER = CN()
 # See detectron2/solver/build.py for definition.
 _C.SOLVER.LR_SCHEDULER_NAME = "WarmupMultiStepLR"
 
-_C.SOLVER.MAX_ITER = 40000
+_C.SOLVER.MAX_ITER = 100000
 
-_C.SOLVER.BASE_LR = 0.001
+_C.SOLVER.BASE_LR = 0.1
 
 _C.SOLVER.MOMENTUM = 0.9
 
@@ -529,7 +532,7 @@ _C.SOLVER.WEIGHT_DECAY_NORM = 0.0
 
 _C.SOLVER.GAMMA = 0.1
 # The iteration number to decrease learning rate by GAMMA.
-_C.SOLVER.STEPS = (30000,)
+_C.SOLVER.STEPS = (32000,48000,)
 
 _C.SOLVER.WARMUP_FACTOR = 1.0 / 1000
 _C.SOLVER.WARMUP_ITERS = 1000
@@ -633,3 +636,17 @@ _C.VIS_PERIOD = 0
 # Do not commit any configs into it.
 _C.GLOBAL = CN()
 _C.GLOBAL.HACK = 1.0
+
+
+#------------------------------------------------------#
+#Parameters Newly added by Jinzong Dong
+#CIF parameters
+#------------------------------------------------------#
+_C.CIF = CN()
+_C.CIF.NUM_CLASSES = 80
+_C.CIF.IMAGE=CN()
+_C.CIF.IMAGE.IMAGE_SIZE = (448,448) #Image size of input neural network
+
+_C.Transformer = CN()
+_C.Transformer.src_vocab_size = 1001
+_C.Transformer.tgt_vocab_size = 10

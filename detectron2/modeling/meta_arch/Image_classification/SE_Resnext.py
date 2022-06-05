@@ -3,10 +3,13 @@ New for ResNeXt:
 1. Wider bottleneck
 2. Add group for conv2
 '''
+from sklearn.feature_extraction import image
 from ..build import META_ARCH_REGISTRY
 import torch.nn as nn
 import math
 import torch
+import torchvision
+import PIL
 
 __all__ = ['SE_ResNeXt', 'se_resnext_50', 'se_resnext_101', 'se_resnext_152']
 
@@ -60,6 +63,8 @@ class Bottleneck(nn.Module):
         original_out = out
         out = self.globalAvgPool(out)
         out = out.view(out.size(0), -1)
+
+
         out = self.fc1(out)
         out = self.relu(out)
         out = self.fc2(out)
@@ -97,6 +102,9 @@ class SE_ResNeXt(nn.Module):
             elif isinstance(m, nn.BatchNorm2d):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
+        self.toPILImage = torchvision.transforms.ToPILImage()
+        self.resize = torchvision.transforms.Resize((224,224))
+        self.to_tensor = torchvision.transforms.ToTensor()
 
     def _make_layer(self, block, planes, blocks, num_group, stride=1):
         downsample = None
@@ -121,10 +129,13 @@ class SE_ResNeXt(nn.Module):
         batch_images = []
         batch_label = []
         for i in range(0,batchsize,1):
-            batch_images.append(data[i]["image"])
+            image = data[i]["image"]
+            image = self.toPILImage(image)
+            image = self.resize(image)
+            image = self.to_tensor(image)
+            batch_images.append(image)
             batch_label.append(int(float(data[i]["y"])))
-        batch_images=[image.tolist() for image in batch_images]
-        batch_images_tensor = torch.tensor(batch_images,dtype=torch.float).cuda()
+        batch_images_tensor = self.preprocess(batch_images).cuda().float().clone().detach()
 
         #-----------------网络向前传播-------------#
         x = self.conv1(batch_images_tensor)
@@ -149,6 +160,29 @@ class SE_ResNeXt(nn.Module):
         else:
             #直接返回推理结果
             return x
+    
+    def preprocess(self, batched_inputs):
+        """
+            Args:
+              batch_inputs: 图片张量列表
+            Return:
+              padded_images: 填充后的批量图片张量
+              image_sizes_orig: 原始图片尺寸信息
+        """
+        ## 保留原始图片尺寸
+        image_sizes_orig = [[image.shape[-2], image.shape[-1]] for image in batched_inputs]
+        ## 找到最大尺寸
+        max_size = max([max(image_size[0], image_size[1]) for image_size in image_sizes_orig])
+        
+        ## 构造批量形状 (batch_size, channel, max_size, max_size)
+        batch_shape = (len(batched_inputs), batched_inputs[0].shape[0], max_size, max_size)
+
+        padded_images = batched_inputs[0].new_full(batch_shape, 0.0)
+        for padded_img, img in zip(padded_images, batched_inputs):
+            h, w=img.shape[1:]
+            padded_img[..., :h, :w].copy_(img)
+
+        return padded_images
 
 @META_ARCH_REGISTRY.register()
 def se_resnext_50(cfg):

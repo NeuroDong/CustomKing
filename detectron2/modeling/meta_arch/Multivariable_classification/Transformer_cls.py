@@ -251,10 +251,8 @@ class Transformer(nn.Module):
 
 @META_ARCH_REGISTRY.register()
 def Transformer_cls(cfg):
-    src_vocab_size = cfg.src_vocab_size
-    tgt_vocab_size = cfg.tgt_vocab_size
+    src_vocab_size = cfg.Transformer.src_vocab_size
+    assert cfg.Transformer.tgt_vocab_size == cfg.num_classes, "输出类别参数设置不正确"
+    tgt_vocab_size = cfg.num_classes
     model = Transformer(src_vocab_size,tgt_vocab_size)
     return model
-
-if __name__=="__main__":
-    print(Transformer_cls(1000,10))

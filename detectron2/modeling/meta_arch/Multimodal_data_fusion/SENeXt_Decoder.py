@@ -343,7 +343,7 @@ class SENeXt_Decoder(nn.Module):
         self.image_network = SENeXt(Bottleneck, [3, 4, 23, 3]).cuda()  #resnext101
         #self.encoder = Encoder(cfg.src_vocab_size)
         self.src_emb = nn.Embedding(cfg.Arguments1, d_model) #得到词嵌入
-        self.pos_emb = nn.Embedding.from_pretrained(get_sinusoid_encoding_table(cfg.src_vocab_size, d_model),freeze=True)
+        self.pos_emb = nn.Embedding.from_pretrained(get_sinusoid_encoding_table(cfg.Arguments1, d_model),freeze=True)
         self.decoder = Decoder(cfg.Arguments2)
         self.projection = nn.Linear(d_model,cfg.Arguments2, bias=False)
         self.loss_fun = nn.CrossEntropyLoss(ignore_index=0)
@@ -390,6 +390,7 @@ class SENeXt_Decoder(nn.Module):
         #----------------------------解码生成损失函数---------------------------------#
         dec_logits = self.projection(dec_outputs) # dec_logits: [batch_size, tgt_len, tgt_vocab_size]
         outputs, dec_self_attns, dec_enc_attns = dec_logits.view(-1, dec_logits.size(-1)), dec_self_attns, dec_enc_attns
+
         if self.training:
             loss = self.loss_fun(outputs, dec_inputs.view(-1))    
             return loss

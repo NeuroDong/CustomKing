@@ -19,10 +19,9 @@ class Backbone(nn.Module, metaclass=ABCMeta):
         super().__init__()
 
     @abstractmethod
-    def forward(self):
+    def forward(self):        
         """
         Subclasses must override this method, but adhere to the same return type.
-
         Returns:
             dict[str->Tensor]: mapping from feature name (e.g., "res2") to tensor
         """
@@ -40,6 +39,7 @@ class Backbone(nn.Module, metaclass=ABCMeta):
         return 0
 
     def output_shape(self):
+        
         """
         Returns:
             dict[str->ShapeSpec]

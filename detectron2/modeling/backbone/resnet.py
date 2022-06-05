@@ -382,6 +382,7 @@ class ResNet(Backbone):
         self.stem = stem
         self.num_classes = num_classes
 
+        #获取前面模块的步长，输入通道和输出通道。
         current_stride = self.stem.stride
         self._out_feature_strides = {"stem": current_stride}
         self._out_feature_channels = {"stem": self.stem.out_channels}
@@ -391,9 +392,7 @@ class ResNet(Backbone):
         if out_features is not None:
             # Avoid keeping unused layers in this module. They consume extra memory
             # and may cause allreduce to fail
-            num_stages = max(
-                [{"res2": 1, "res3": 2, "res4": 3, "res5": 4}.get(f, 0) for f in out_features]
-            )
+            num_stages = max([{"res2": 1, "res3": 2, "res4": 3, "res5": 4}.get(f, 0) for f in out_features])
             stages = stages[:num_stages]
         for i, blocks in enumerate(stages):
             assert len(blocks) > 0, len(blocks)
@@ -467,8 +466,7 @@ class ResNet(Backbone):
 
     def freeze(self, freeze_at=0):
         """
-        Freeze the first several stages of the ResNet. Commonly used in
-        fine-tuning.
+        Freeze the first several stages of the ResNet. Commonly used in fine-tuning.
 
         Layers that produce the same feature map spatial size are defined as one
         "stage" by :paper:`FPN`.
@@ -491,6 +489,7 @@ class ResNet(Backbone):
 
     @staticmethod
     def make_stage(block_class, num_blocks, *, in_channels, out_channels, **kwargs):
+        
         """
         Create a list of blocks of the same type that forms one ResNet stage.
 
@@ -628,7 +627,7 @@ def build_resnet_backbone(cfg, input_shape):
 
     # fmt: off
     freeze_at           = cfg.MODEL.BACKBONE.FREEZE_AT
-    out_features        = cfg.MODEL.RESNETS.OUT_FEATURES
+    out_features        = cfg.MODEL.RESNETS.OUT_FEATURES #["res4"]
     depth               = cfg.MODEL.RESNETS.DEPTH
     num_groups          = cfg.MODEL.RESNETS.NUM_GROUPS
     width_per_group     = cfg.MODEL.RESNETS.WIDTH_PER_GROUP
@@ -664,7 +663,7 @@ def build_resnet_backbone(cfg, input_shape):
     for idx, stage_idx in enumerate(range(2, 6)):
         # res5_dilation is used this way as a convention in R-FCN & Deformable Conv paper
         dilation = res5_dilation if stage_idx == 5 else 1
-        first_stride = 1 if idx == 0 or (stage_idx == 5 and dilation == 2) else 2
+        first_stride = 1 if idx == 0 or (stage_idx == 5 and dilation == 2) else 2 #1,2,2,2
         stage_kargs = {
             "num_blocks": num_blocks_per_stage[idx],
             "stride_per_block": [first_stride] + [1] * (num_blocks_per_stage[idx] - 1),

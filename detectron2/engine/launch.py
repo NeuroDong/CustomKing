@@ -7,7 +7,7 @@ import torch.multiprocessing as mp
 
 from detectron2.utils import comm
 
-__all__ = ["DEFAULT_TIMEOUT", "launch"]
+__all__ = ["DEFAULT_TIMEOUT", "launch"]  #定义公开接口
 
 DEFAULT_TIMEOUT = timedelta(minutes=30)
 
