@@ -6,7 +6,7 @@
   Detectron2-All是一个基于Detectron2的神经网络快速搭建，其与Detectron2的区别在于：Detectron2只内置了目标检测，图像分割等领域的算法和数据集，面向的领域比较窄，而Detectron2-All致力于内置所有常用机器学习算法（以深度学习为主）和所有常用数据集，包括但不限于分类、回归、小样本、元学习等领域。
   
 # 2. 运行环境安装教程
-见Detectron2的安装教程：https://detectron2.readthedocs.io/en/latest/tutorials/install.html。
+见Detectron2的安装教程：https://detectron2.readthedocs.io/en/latest/tutorials/install.html 。
 环境如下：
 
 Ubuntu20.04
@@ -34,7 +34,7 @@ cfg.DATASETS.TEST = "配置参数名" #测试数据集
 ```
 配置参数名请看第5节的表格。
 
-如果要更改更多的配置参数，请见：https://github.com/dongdongdong1217/Detectron2-All/blob/main/detectron2/config/defaults.py
+如果要更改更多的配置参数，请见：https://github.com/NeuroDong/Detectron2-All/blob/main/detectron2/config/defaults.py
 ## 3.2 自定义算法和数据集
 见：https://detectron2.readthedocs.io/en/latest/tutorials/index.html ，或者联系作者进行讨论。作者邮箱为dongjinzong@126.com, 微信二维码见上面的logo图像。
 
