@@ -182,10 +182,10 @@ class ResNet(nn.Module):
         self.transforms_train = nn.Sequential(transforms.Pad(4),
                         transforms.RandomCrop(32),
                         transforms.RandomHorizontalFlip(),
-                        transforms.Resize(224),
+                        #transforms.Resize(224),
                         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)))
 
-        self.transforms_evel = nn.Sequential(transforms.Resize(224),
+        self.transforms_evel = nn.Sequential(#transforms.Resize(224),
                         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)))
 
 

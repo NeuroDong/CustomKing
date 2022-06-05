@@ -312,31 +312,31 @@ class CoAtNet(nn.Module):
 def Sk_coatnet_0(cfg):
     num_blocks = [2, 2, 3, 5, 2]  # L
     channels = [64, 96, 192, 384, 768]  # D
-    return CoAtNet((cfg., 224), 3, num_blocks, channels, num_classes=cfg.num_classes)
+    return CoAtNet((cfg.ImageSize, cfg.ImageSize), 3, num_blocks, channels, num_classes=cfg.num_classes)
 
 @META_ARCH_REGISTRY.register()
 def Sk_coatnet_1(cfg):
     num_blocks = [2, 2, 6, 14, 2]  # L
     channels = [64, 96, 192, 384, 768]  # D
-    return CoAtNet((224, 224), 3, num_blocks, channels, num_classes=10)
+    return CoAtNet((cfg.ImageSize, cfg.ImageSize), 3, num_blocks, channels, num_classes=cfg.num_classes)
 
 @META_ARCH_REGISTRY.register()
 def Sk_coatnet_2(cfg):
     num_blocks = [2, 2, 6, 14, 2]  # L
     channels = [128, 128, 256, 512, 1026]  # D
-    return CoAtNet((224, 224), 3, num_blocks, channels, num_classes=10)
+    return CoAtNet((cfg.ImageSize, cfg.ImageSize), 3, num_blocks, channels, num_classes=cfg.num_classes)
 
 @META_ARCH_REGISTRY.register()
 def Sk_coatnet_3(cfg):
     num_blocks = [2, 2, 6, 14, 2]  # L
     channels = [192, 192, 384, 768, 1536]  # D
-    return CoAtNet((224, 224), 3, num_blocks, channels, num_classes=10)
+    return CoAtNet((cfg.ImageSize, cfg.ImageSize), 3, num_blocks, channels, num_classes=cfg.num_classes)
 
 @META_ARCH_REGISTRY.register()
 def Sk_coatnet_4(cfg):
     num_blocks = [2, 2, 12, 28, 2]  # L
     channels = [192, 192, 384, 768, 1536]  # D
-    return CoAtNet((224, 224), 3, num_blocks, channels, num_classes=10)
+    return CoAtNet((cfg.ImageSize, cfg.ImageSize), 3, num_blocks, channels, num_classes=cfg.num_classes)
 
 
 def count_parameters(model):

@@ -137,7 +137,7 @@ def main():
         os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
         #--------------------设置配置参数-----------------------------#
         cfg = get_cfg() 
-        cfg.MODEL.META_ARCHITECTURE = "Complete_graph_network18" #网络模型
+        cfg.MODEL.META_ARCHITECTURE = "Resnet18" #网络模型
         #------网络模型初始化需要传入的实参,有几个实参，就添加几个------#
         cfg.num_classes = 10
         cfg.ImageSize = 32
@@ -147,9 +147,9 @@ def main():
         cfg.PRE_WEIGHT = False
          #是否加载与训练权重
         cfg.IMS_PER_BATCH = 128 #batchsize
-        cfg.SOLVER.MAX_ITER = 64000 #训练最大iters
+        cfg.SOLVER.MAX_ITER = 100000 #训练最大iters
         cfg.SOLVER.CHECKPOINT_PERIOD = 1000 #每个多少iters保存一次权值
-        cfg.OUTPUT_DIR = "output/Cifar10/Complete_graph_network18_data_enhancement_no_pool"
+        cfg.OUTPUT_DIR = "output/Cifar10/Resnet18_100000"
         cfg.CUDNN_BENCHMARK = True
         print(cfg)
         #-------------------------建立网络模型------------------------------#
