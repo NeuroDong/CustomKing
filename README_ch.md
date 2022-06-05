@@ -17,10 +17,11 @@ Pytorch1.8.1
 
 # 使用教程
 ## 使用内置的算法和数据集
-所有内置算法、数据集和预训练权重都可以通过运行以下代码进行训练或评估，只需相应地更改参数即可。有关参数的选择，请见：https://github.com/dongdongdong1217/Detectron2-FC/tree/main/tools#readme.
+所有内置算法、数据集和预训练权重都可以通过运行以下代码进行训练或评估，只需相应地更改参数即可。
 ```java  
   python3 tool/mian.py
 ```
+算法选择方式：在main.py文件中设置：cfg.MODEL.META_ARCHITECTURE = 配置参数名，配置参数名请见下面的表格。
 如果要更改更多的配置参数，请见：https://github.com/dongdongdong1217/Detectron2-All/blob/main/detectron2/config/defaults.py
 ## 自定义算法和数据集
 见：https://detectron2.readthedocs.io/en/latest/tutorials/index.html ，或者联系作者进行讨论。作者邮箱为dongjinzong@126.com, 微信二维码见上面的logo图像。
