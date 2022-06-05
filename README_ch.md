@@ -26,6 +26,7 @@ Pytorch1.8.1
 见：https://detectron2.readthedocs.io/en/latest/tutorials/index.html ，或者联系作者进行讨论。作者邮箱为dongjinzong@126.com, 微信二维码见上面的logo图像。
 
 # 现有内置算法与数据集
+算法选择方式：再main.py文件中设置：cfg.MODEL.META_ARCHITECTURE = 配置参数名
 <table class=MsoTableGrid border=1 cellspacing=0 cellpadding=0
  style='border-collapse:collapse;border:none;mso-border-alt:solid windowtext .5pt;
  mso-yfti-tbllook:1184;mso-padding-alt:0cm 5.4pt 0cm 5.4pt'>
