@@ -529,7 +529,7 @@ cfg.DATASETS.TEST = "配置参数名" #测试数据集
   border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
   mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
   mso-border-alt:solid windowtext .5pt;padding:0cm 5.4pt 0cm 5.4pt'>
-  <p class=MsoNormal align=center style='text-align:center'>验证集</p>
+  <p class=MsoNormal align=center style='text-align:center'>测试集</p>
   </td>
   <td width=184 style='width:138.3pt;border-top:none;border-left:none;
   border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
@@ -543,7 +543,7 @@ cfg.DATASETS.TEST = "配置参数名" #测试数据集
   border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
   mso-border-top-alt:solid windowtext .5pt;mso-border-left-alt:solid windowtext .5pt;
   mso-border-alt:solid windowtext .5pt;padding:0cm 5.4pt 0cm 5.4pt'>
-  <p class=MsoNormal align=center style='text-align:center'>测试集</p>
+  <p class=MsoNormal align=center style='text-align:center'>训练集和测试集</p>
   </td>
   <td width=184 style='width:138.3pt;border-top:none;border-left:none;
   border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;
