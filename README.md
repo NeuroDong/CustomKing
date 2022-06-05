@@ -5,13 +5,11 @@ English | [简体中文](https://github.com/dongdongdong1217/Detectron2-All/blob
 # 1. What is Detectron2-All
 Detectron2-All is a fast neural network construction platform based on Detectron2, and its difference with Detectron2 is that Detectron2 only has built-in algorithms and datasets in the fields of object detection, image segmentation, etc., and the field is relatively narrow, while Detectron2-All is committed to building all common machine learning algorithms (mainly deep learning) and all commonly used data sets, including but not limited to classification, regression, few-shot, and Meta-learning.
 # 2. Installation tutorial
-See https://detectron2.readthedocs.io/en/latest/tutorials/install.html for the installation of detectron2. The construction environment is as follows:
-
-Ubuntu20.04
-
-CUDA10.1
-
-Pytorch1.8.1
+Corresponding CUDA and pytorch versions: cuda10.1, pytorch1.8.1.
+## 2.1 Environment installation for Linux and MacOS systems
+See https://detectron2.readthedocs.io/en/latest/tutorials/install.html for the installation of detectron2. 
+## 2.2 Environment installation of windows system
+See the installation tutorial of detectron2-windows: https://github.com/DGMaxime/detectron2-windows 。
 
 # 3. Using tutorials
 ## 3.1 Use the detectron2-All built-in algorithms and datasets
