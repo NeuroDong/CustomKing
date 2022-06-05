@@ -628,3 +628,5 @@ cfg.DATASETS.TEST = "配置参数名" #测试数据集
   </td>
  </tr>
 </table>
+
+# 6. 近期更新
