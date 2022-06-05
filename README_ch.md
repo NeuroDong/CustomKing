@@ -39,7 +39,7 @@ cfg.DATASETS.TEST = "配置参数名" #测试数据集
 见：https://detectron2.readthedocs.io/en/latest/tutorials/index.html ，或者联系作者进行讨论。作者邮箱为dongjinzong@126.com, 微信二维码见上面的logo图像。
 
 # 3. 现有内置算法
-除了下列公开模型以外，Detectron2-All还内置了许多未公开模型，值得大家探索。
+除了下列公开模型以外，Detectron2-All还内置了Detectron2原本自带的模型(如Faster RCNN等)和许多未公开模型，值得大家探索。
 <table class=MsoTableGrid border=1 cellspacing=0 cellpadding=0
  style='border-collapse:collapse;border:none;mso-border-alt:solid windowtext .5pt;
  mso-yfti-tbllook:1184;mso-padding-alt:0cm 5.4pt 0cm 5.4pt'>
@@ -485,4 +485,4 @@ cfg.DATASETS.TEST = "配置参数名" #测试数据集
 </table>
 
 # 4. 现有内置数据集
-除了以下公开数据集以外，Detectron2-All还内置了许多未公开数据集，值得大家探索。
+除了以下公开数据集以外，Detectron2-All还内置了Detectron2原本自带的数据集(如COCO数据集等)和许多未公开数据集，值得大家探索。
