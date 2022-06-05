@@ -5,7 +5,7 @@
 # Detectron2-All是什么?
   Detectron2-All是一个基于Detectron2的神经网络快速搭建，其与Detectron2的区别在于：Detectron2只内置了目标检测，图像分割等领域的算法和数据集，面向的领域比较窄，而Detectron2-All致力于内置所有常用机器学习算法（以深度学习为主）和所有常用数据集，包括但不限于分类、回归、小样本、元学习等领域。
   
-# 运行环境安装教程
+# 1. 运行环境安装教程
 见Detectron2的安装教程：https://detectron2.readthedocs.io/en/latest/tutorials/install.html。
 环境如下：
 
@@ -15,18 +15,18 @@ CUDA10.1
 
 Pytorch1.8.1
 
-# 使用教程
-## 使用内置的算法和数据集
+# 2. 使用教程
+## 2.1 使用内置的算法和数据集
 所有内置算法、数据集和预训练权重都可以通过运行以下代码进行训练或评估，只需相应地更改参数即可。
 ```java  
   python3 tool/mian.py
 ```
 算法选择方式：在main.py文件中设置：cfg.MODEL.META_ARCHITECTURE = 配置参数名，配置参数名请见下面的表格。
 如果要更改更多的配置参数，请见：https://github.com/dongdongdong1217/Detectron2-All/blob/main/detectron2/config/defaults.py
-## 自定义算法和数据集
+## 2.2 自定义算法和数据集
 见：https://detectron2.readthedocs.io/en/latest/tutorials/index.html ，或者联系作者进行讨论。作者邮箱为dongjinzong@126.com, 微信二维码见上面的logo图像。
 
-# 现有内置算法与数据集
+# 3. 现有内置算法
 算法选择方式：在main.py文件中设置：cfg.MODEL.META_ARCHITECTURE = 配置参数名，除了下列公开模型以外，Detectron2-All还内置了许多未公开模型，值得大家探索。
 <table class=MsoTableGrid border=1 cellspacing=0 cellpadding=0
  style='border-collapse:collapse;border:none;mso-border-alt:solid windowtext .5pt;
@@ -471,3 +471,4 @@ Pytorch1.8.1
   </td>
  </tr>
 </table>
+# 4. 现有内置数据集
