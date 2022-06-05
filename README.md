@@ -490,6 +490,7 @@ In addition to the following public models, detectron2-all also has built-in det
 </table>
 
 # 5. Existing built-in dataset
+In addition to the following public datasets, detectron2-all also has built-in detectron2's original datasets (such as coco datasets) and many unpublished datasets, which are worth exploring.
 <table class=MsoTableGrid border=1 cellspacing=0 cellpadding=0 width="49%"
  style='width:49.26%;margin-left:-.4pt;border-collapse:collapse;border:none;
  mso-border-alt:solid windowtext .5pt;mso-yfti-tbllook:1184;mso-padding-alt:
