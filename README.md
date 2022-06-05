@@ -676,3 +676,7 @@ In addition to the following public datasets, detectron2-all also has built-in d
  </tr>
 </table>
 
+# Recent updates
+- **2022.6.5 Project restructuring**
+  - Publish the newly added public algorithms and datasets, and display them in the form of lists in sections 4 and 5.
+  - Publish the function that can be used to compare the loss function values in the training process of multiple models. See:https://github.com/NeuroDong/Detectron2-All/blob/main/visualizate/Classification/trainloss_comparison.py.
