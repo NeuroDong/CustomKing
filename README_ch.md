@@ -22,16 +22,16 @@ Pytorch1.8.1
   python3 tool/mian.py
 ```
 算法选择方式：在main.py文件中设置：
-'''java
+```java  
 cfg.MODEL.META_ARCHITECTURE = 配置参数名
-'''
+```
 配置参数名请第3节的表格。
 
 数据集选择方式：在main.py文件中设置：
-'''
+```java  
 cfg.DATASETS.TRAIN = "配置参数名" #训练数据集
 cfg.DATASETS.TEST = "配置参数名" #测试数据集
-'''
+```
 配置参数名请第4节的表格。
 
 如果要更改更多的配置参数，请见：https://github.com/dongdongdong1217/Detectron2-All/blob/main/detectron2/config/defaults.py
