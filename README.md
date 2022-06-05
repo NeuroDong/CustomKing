@@ -34,7 +34,7 @@ See the table in section 5 for configuration parameter names.
 
 If you want to change more configuration parameters, see: https://github.com/dongdongdong1217/Detectron2-All/blob/main/detectron2/config/defaults.py.
 ## 3.2 Use custom networks and data
-See: https://detectron2.readthedocs.io/en/latest/tutorials/index.html, or contact the author for a discussion. The author's email address is dongjinzong@126.com, WeChat QR code see the logo image above.
+See: https://detectron2.readthedocs.io/en/latest/tutorials/index.html, or contact the author for a discussion. The author's email address is dongjinzong@126.com, and the author's WeChat QR code is in the logo image above.
 
 # 4. Existing built-in algorithms
 In addition to the following public models, detectron2-all also has built-in detectron2's original models (such as retinanet) and many unpublished models, which are worth exploring.
