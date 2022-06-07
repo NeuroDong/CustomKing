@@ -678,3 +678,6 @@ In addition to the following public datasets, detectron2-all also has built-in d
 - **2022.6.5 Project restructuring**
   - Publish the newly added public algorithms and datasets, and display them in the form of lists in sections 4 and 5.
   - Publish the function that can be used to compare the loss function values in the training process of multiple models. See:https://github.com/NeuroDong/Detectron2-All/blob/main/visualizate/Classification/trainloss_comparison.py.
+- **2022.6.7 Visual optimization of training process**
+  - The training accuracy and test accuracy are displayed in the training process, and the test set is evaluated once for each training epoch.
+  - Add the visualization function of training accuracy and test accuracy, as well as the error visualization function of the training process, as shown in: https://github.com/NeuroDong/Detectron2-All/blob/main/visualizate/Classification/plt_acc.py and https://github.com/NeuroDong/Detectron2-All/blob/main/visualizate/Classification/plt_error.py.
