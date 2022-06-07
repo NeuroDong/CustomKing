@@ -200,7 +200,7 @@ class LT_FN(nn.Module):
             #print("batch_label:",batch_label.long())
             loss = loss_fun(x,batch_label.long())
             #print("loss:",loss)
-            return loss
+            return loss,x
         else:
             #直接返回推理结果
             return x

@@ -156,7 +156,7 @@ class SE_ResNeXt(nn.Module):
             batch_label = torch.tensor(batch_label,dtype=float).cuda()
             loss_fun = nn.CrossEntropyLoss()
             loss = loss_fun(x,batch_label.long())
-            return loss
+            return loss,x
         else:
             #直接返回推理结果
             return x

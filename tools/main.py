@@ -1,4 +1,5 @@
 
+from doctest import OutputChecker
 from numpy.core.fromnumeric import mean
 from detectron2.data import get_detection_dataset_dicts
 from detectron2.data import build_detection_train_loader,build_detection_test_loader
@@ -90,48 +91,88 @@ def do_test(cfg, model):
         print("mAP:",mAP)
 
 def do_train(cfg, model, resume=False):
-        logging.basicConfig(level=logging.INFO)
-        model.train() 
+        logging.basicConfig(level=logging.INFO) 
+        model.train()
         optimizer = build_optimizer(cfg, model) 
         scheduler = build_lr_scheduler(cfg, optimizer) 
         checkpointer = DetectionCheckpointer(model, cfg.OUTPUT_DIR, optimizer=optimizer, scheduler=scheduler) 
         start_iter = (checkpointer.resume_or_load(cfg.MODEL.WEIGHTS, resume=resume).get("iteration", -1) + 1) 
+        dataset_train = get_detection_dataset_dicts(cfg.DATASETS.TRAIN)
+        train_data = build_detection_train_loader(dataset_train,mapper=Transforms,total_batch_size=cfg.IMS_PER_BATCH,num_workers=0)
         max_iter = cfg.SOLVER.MAX_ITER
+        cfg.SOLVER.CHECKPOINT_PERIOD = len(dataset_train) // cfg.IMS_PER_BATCH
         periodic_checkpointer = PeriodicCheckpointer(checkpointer, cfg.SOLVER.CHECKPOINT_PERIOD, max_iter=max_iter)
         writers = default_writers(cfg.OUTPUT_DIR, max_iter) if comm.is_main_process() else []
 
-        #---------------------------导入数据--------------------------------#
-        dataset = get_detection_dataset_dicts(cfg.DATASETS.TRAIN)
-        train_data = build_detection_train_loader(dataset,mapper=Transforms,total_batch_size=cfg.IMS_PER_BATCH,num_workers=4)
+        dataset_test = get_detection_dataset_dicts(cfg.DATASETS.TEST)
+        test_data = build_detection_test_loader(dataset_test,mapper=Transforms)
 
         with EventStorage(start_iter) as storage:
                 time1 = time.time()
+                correct = 0.0
+                total = 0.0
+                best_test_acc = 0.0
+                best_test_iter = 0
                 for data, iteration in zip(train_data, range(start_iter, max_iter)):
-                    storage.iter = iteration
-                    optimizer.zero_grad(set_to_none=True)
-                    with torch.cuda.amp.autocast():
-                        loss = model(data)
-                    time2 = time.time()
-                    #---------------------更新权值---------------------#
-                    scaler.scale(loss).backward()
-                    scaler.step(optimizer)
-                    scaler.update()
+                        storage.iter = iteration
+                        optimizer.zero_grad(set_to_none=True)
+                        with torch.cuda.amp.autocast():
+                                loss,predict = model(data)
+                        time2 = time.time()
+                        #---------------------更新权值---------------------#
+                        scaler.scale(loss).backward()
+                        scaler.step(optimizer)
+                        scaler.update()
 
-                    #loss.backward()
-                    #optimizer.step()
-                    #---------------------记录并更新学习率--------------#
-                    storage.put_scalar("lr", optimizer.param_groups[0]["lr"], smoothing_hint=False)
-                    scheduler.step()
-                    storage.put_scalar("loss", loss, smoothing_hint=False)
-                    if iteration - start_iter > 5 and ((iteration + 1) % 20 == 0 or iteration == max_iter - 1):
-                            storage.put_scalar("train_time",time.time()-time1,smoothing_hint=False)
-                            storage.put_scalar("a_iter_backward_time",time.time()-time2,smoothing_hint=False)
-                            time1 = time.time()
-                            for writer in writers:
-                                writer.write()
-                            
-                    periodic_checkpointer.step(iteration)
+                        #-------------计算训练准确率(即一个batch内的准确率)-----#
+                        batch_label = []
+                        for i in range(0,len(data),1):
+                                batch_label.append(int(float(data[i]["y"])))
+                        batch_label = torch.Tensor(batch_label).cuda()
+                        _, predicted = torch.max(predict.data, 1)
+                        
+                        total += len(data)
+                        correct += predicted.eq(batch_label).cpu().sum()
+                        train_acc = correct / total
 
+                        #---------------------记录并更新学习率--------------#
+                        storage.put_scalar("lr", optimizer.param_groups[0]["lr"], smoothing_hint=False)
+                        scheduler.step()
+                        storage.put_scalar("loss", loss, smoothing_hint=False)
+                        if iteration - start_iter > 5 and ((iteration + 1) % 20 == 0 or iteration == max_iter - 1):
+                                storage.put_scalar("train_time",time.time()-time1,smoothing_hint=False)
+                                storage.put_scalar("a_iter_backward_time",time.time()-time2,smoothing_hint=False)
+                                storage.put_scalar("train_acc",train_acc,smoothing_hint=False)
+                                time1 = time.time()
+                                if iteration > 20 and iteration % cfg.SOLVER.CHECKPOINT_PERIOD <20:
+                                        epoch = epoch + 1
+                                        result_list = []
+                                        label_list = []
+                                        model.eval()
+                                        with torch.no_grad():
+                                                for data in tqdm(test_data):
+                                                        inference_result = model(data).cpu().detach().numpy()
+                                                        result = np.where(inference_result[0]==max(inference_result[0]))
+                                                        result_list.append(result[0][0])
+                                                        label_list.append(int(float(data[0]["y"])))
+                                        correct_test = 0
+                                        for i in range(0,len(label_list),1):
+                                                if result_list[i] == label_list[i]:
+                                                        correct_test = correct_test + 1
+                                        test_acc = correct_test / len(label_list)
+                                        if test_acc > best_test_acc:
+                                                best_test_acc = test_acc
+                                                best_test_iter = iteration
+                                        storage.put_scalar("test_acc",test_acc,smoothing_hint=False)
+                                else:
+                                        storage.put_scalar("test_acc",np.NaN,smoothing_hint=False) 
+                                for writer in writers:
+                                        writer.write()
+                        periodic_checkpointer.step(iteration)
+                        model.train()
+                print("Best test accuracy:",best_test_acc)
+                print("Best test iteration:",best_test_iter)
+                        
 
 def main():
         os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
@@ -147,24 +188,22 @@ def main():
         cfg.PRE_WEIGHT = False
          #是否加载与训练权重
         cfg.IMS_PER_BATCH = 128 #batchsize
-        cfg.SOLVER.MAX_ITER = 100000 #训练最大iters
-        cfg.SOLVER.CHECKPOINT_PERIOD = 1000 #每个多少iters保存一次权值
-        cfg.OUTPUT_DIR = "output/Cifar10/Resnet18_100000"
+        #cfg.SOLVER.MAX_ITER = 15000 #训练最大iters
+        cfg.SOLVER.EPOCH = 240
+        cfg.OUTPUT_DIR = "output/Cifar10/Resnet18_64000"
         cfg.CUDNN_BENCHMARK = True
-        print(cfg)
         #-------------------------建立网络模型------------------------------#
         model = build_model(cfg)
-        #print(model)
         print("Total number of paramerters in networks is {}  ".format(sum(x.numel() for x in model.parameters())))
         #---------------------训练与测试------------------------------------#
         if cfg.JUST_EVAL:
-                DetectionCheckpointer(model).load("output/Cifar10/Complete_graph_network18_data_enhancement/model_0063999.pth")#加载权值
+                DetectionCheckpointer(model).load("pre_weights/Resnet_240.pth")#加载权值
                 do_test(cfg,model)
         else:
                 if cfg.PRE_WEIGHT:
-                        DetectionCheckpointer(model).load("pre_weights/vit_b_16-c867db91.pth")#加载权值
+                        DetectionCheckpointer(model).load("output/Cifar10/Resnet18_100000/model_0099999.pth")#加载权值
                 do_train(cfg, model)
-                do_test(cfg,model) 
+                #do_test(cfg,model) 
 
 
 if __name__ == "__main__":

@@ -31,7 +31,6 @@ from .Multimodal_data_fusion.Resnet_Decoder import Resnet_decoder
 from .Multimodal_data_fusion.Resnet_Encoder import Resnet_encoder
 
 from .Image_classification.Resnext import Resnet18,Resnet34,Resnet50,Resnet101,Resnet152,ResNeXt50,ResNeXt101,Wide_resnet50_2,Wide_resnet101_2
-from .Image_classification.aaa import VIT
 from .Image_classification.VIT import Vit_b_16,Vit_b_32,Vit_l_16,Vit_l_32,Vit_small
 from .Image_classification.Swin_Transformer import SwinTransformer
 from .Image_classification.SE_Resnext import se_resnext_50,se_resnext_101,se_resnext_152

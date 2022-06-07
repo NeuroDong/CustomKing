@@ -381,7 +381,7 @@ def build_detection_train_loader(
     mapper,
     sampler=None,
     total_batch_size,
-    aspect_ratio_grouping=True,
+    aspect_ratio_grouping=False,
     num_workers=0,
     collate_fn=None,
 ):

@@ -35,6 +35,7 @@ from .classification.icron_water import register_icron_water
 from .classification.process_data import register_process_data
 from .classification.process_and_icronWater import register_process_and_icronWater
 from .classification.Cifar10 import register_Cifar10
+from .classification.oxford_102_flowers import register_flowers102
 
 #自己加上的用于小样本目标检测的数据加载程序
 from .fsdet.meta_coco import register_meta_coco
@@ -467,33 +468,30 @@ def register_all_Cifar10(root):
     names = ["Cifar10_train","Cifar10_test","Cifar10_train_and_test"]
     for name in names:
         if name == "Cifar10_train":
-            dirnames = [os.path.join(root,"Cifar10/train")]
-            register_Cifar10(name,dirnames)
+            register_Cifar10(name,root)
         if name =="Cifar10_test":
-            dirnames = [os.path.join(root,"Cifar10/test")]
-            register_Cifar10(name,dirnames)
+            register_Cifar10(name,root)
         if name == "Cifar10_train_and_test":
-            dirnames = [os.path.join(root,"Cifar10/train"),os.path.join(root,"Cifar10/test")]
-            register_Cifar10(name,dirnames)
+            register_Cifar10(name,root)
 
 def register_all_flowers102(root):
     names = ["flowers102_train","flowers102_val","flowers102_test","flowers102_train_val","flowers102_train_val_test"]
     for name in names:
         if name == "flowers102_train":
             dirnames = [os.path.join(root,"oxford-102-flowers/train")]
-            register_Cifar10(name,dirnames)
+            register_flowers102(name,dirnames)
         if name =="flowers102_val":
             dirnames = [os.path.join(root,"oxford-102-flowers/val")]
-            register_Cifar10(name,dirnames)
+            register_flowers102(name,dirnames)
         if name == "flowers102_test":
             dirnames = [os.path.join(root,"oxford-102-flowers/test")]
-            register_Cifar10(name,dirnames)
+            register_flowers102(name,dirnames)
         if name == "flowers102_train_val":
             dirnames = [os.path.join(root,"oxford-102-flowers/train"),os.path.join(root,"oxford-102-flowers/val")]
-            register_Cifar10(name,dirnames)
+            register_flowers102(name,dirnames)
         if name == "flowers102_train_val_test":
             dirnames = [os.path.join(root,"oxford-102-flowers/train"),os.path.join(root,"oxford-102-flowers/val"),os.path.join(root,"oxford-102-flowers/test")]
-            register_Cifar10(name,dirnames)
+            register_flowers102(name,dirnames)
 
 
 if __name__.endswith(".builtin"):

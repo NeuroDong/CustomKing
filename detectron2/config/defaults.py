@@ -517,7 +517,7 @@ _C.SOLVER = CN()
 # See detectron2/solver/build.py for definition.
 _C.SOLVER.LR_SCHEDULER_NAME = "WarmupMultiStepLR"
 
-_C.SOLVER.MAX_ITER = 100000
+_C.SOLVER.MAX_ITER = 64000
 
 _C.SOLVER.BASE_LR = 0.1
 
@@ -532,7 +532,7 @@ _C.SOLVER.WEIGHT_DECAY_NORM = 0.0
 
 _C.SOLVER.GAMMA = 0.1
 # The iteration number to decrease learning rate by GAMMA.
-_C.SOLVER.STEPS = (64000,86000,)
+_C.SOLVER.STEPS = (32000,48000,)
 
 _C.SOLVER.WARMUP_FACTOR = 1.0 / 1000
 _C.SOLVER.WARMUP_ITERS = 1000

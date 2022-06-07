@@ -393,7 +393,7 @@ class SENeXt_Decoder(nn.Module):
 
         if self.training:
             loss = self.loss_fun(outputs, dec_inputs.view(-1))    
-            return loss
+            return loss,outputs
         else:
             return outputs
 

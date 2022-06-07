@@ -343,7 +343,7 @@ class Resnet_encoder(nn.Module):
         outputs, enc_self_attns = dec_logits.view(-1, dec_logits.size(-1)), enc_self_attns
         if self.training:
             loss = self.loss_fun(outputs, dec_inputs.view(-1))    
-            return loss
+            return loss,outputs
         else:
             return outputs
 

@@ -11,6 +11,7 @@ import torch
 from fvcore.common.history_buffer import HistoryBuffer
 
 from detectron2.utils.file_io import PathManager
+import numpy as np
 
 __all__ = [
     "get_event_storage",
@@ -109,6 +110,8 @@ class JSONWriter(EventWriter):
         for k, (v, iter) in storage.latest_with_smoothing_hint(self._window_size).items():
             # keep scalars that have not been written
             if iter <= self._last_write:
+                continue
+            if k == "test_acc" and np.isnan(v):
                 continue
             to_save[iter][k] = v
         if len(to_save):
@@ -236,13 +239,23 @@ class CommonMetricPrinter(EventWriter):
             # or when SimpleTrainer is not used
             data_time = None
         try:
-            iter_time = storage.history("train_time").global_avg()
+            iter_time = storage.history("train_time").latest()
         except KeyError:
             iter_time = None
         try:
-            backward_time = storage.history("a_iter_backward_time").global_avg()
+            backward_time = storage.history("a_iter_backward_time").latest()
         except KeyError:
-            backward_time = None    
+            backward_time = None
+        try:
+            train_acc = storage.history("train_acc").latest()
+        except KeyError:
+            train_acc = None     
+        try:
+            test_acc = storage.history("test_acc").latest()
+            if np.isnan(test_acc):
+                test_acc = None
+        except KeyError:
+            test_acc = None
         try:
             lr = "{:.5g}".format(storage.history("lr").latest())
         except KeyError:
@@ -257,7 +270,7 @@ class CommonMetricPrinter(EventWriter):
 
         # NOTE: max_mem is parsed by grep in "dev/parse_results.sh"
         self.logger.info(
-            " {eta}iter: {iter}  {losses} {train_time} {a_iter_backward_time}{data_time}lr: {lr}  {memory}".format(
+            " {eta}iter: {iter}  {losses} {train_time} {train_acc} {test_acc} {a_iter_backward_time} {data_time} lr: {lr}  {memory}".format(
                 eta=f"eta: {eta_string}  " if eta_string else "",
                 iter=iteration,
                 losses="  ".join(
@@ -268,6 +281,8 @@ class CommonMetricPrinter(EventWriter):
                     ]
                 ),
                 train_time="train_time: {:.4f}  ".format(iter_time) if iter_time is not None else "",
+                train_acc="train_acc:{:.4f}".format(train_acc) if train_acc is not None else "",
+                test_acc="test_acc:{:.4f}".format(test_acc) if test_acc is not None else "",
                 a_iter_backward_time="a_iter_backward_time: {:.4f}  ".format(backward_time) if backward_time is not None else "",
                 data_time="data_time: {:.4f}  ".format(data_time) if data_time is not None else "",
                 lr=lr,
