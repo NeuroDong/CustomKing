@@ -3,6 +3,7 @@ from re import S
 from ..build import META_ARCH_REGISTRY
 import torch
 import torch.nn as nn
+import numpy as np
 
 import torch
 from torch import Tensor
@@ -146,6 +147,83 @@ class Bottleneck(nn.Module):
 
         return out
 
+class ScaledDotProductAttention(nn.Module):
+    def __init__(self):
+        super(ScaledDotProductAttention, self).__init__()
+
+    def forward(self, Q, K, V,d_k):
+        '''
+        Q: [batch_size, n_heads, len_q, d_k]
+        K: [batch_size, n_heads, len_k, d_k]
+        V: [batch_size, n_heads, len_v(=len_k), d_v]
+        attn_mask: [batch_size, n_heads, seq_len, seq_len]
+        '''
+        scores = torch.matmul(Q, K.transpose(-1, -2)) / np.sqrt(d_k) # scores : [batch_size, n_heads, len_q, len_k]        
+        attn = nn.Softmax(dim=-1)(scores)
+        context = torch.matmul(attn, V) # [batch_size, n_heads, len_q, d_v]
+        return context
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self,d_model=128,d_k=64,d_v=64,n_heads=12):
+        super(MultiHeadAttention, self).__init__()
+        self.d_k = d_k
+        self.d_v = d_v
+        self.n_heads = n_heads
+        self.W_Q = nn.Linear(d_model, d_k * n_heads, bias=False)
+        self.W_K = nn.Linear(d_model, d_k * n_heads, bias=False)
+        self.W_V = nn.Linear(d_model, d_v * n_heads, bias=False)
+        self.fc = nn.Linear(n_heads * d_v, d_model, bias=False)
+        self.norm = nn.LayerNorm(d_model)
+    def forward(self, x):
+        '''
+        input_Q: [batch_size, len_q, d_model]
+        input_K: [batch_size, len_k, d_model]
+        input_V: [batch_size, len_v(=len_k), d_model]
+        attn_mask: [batch_size, seq_len, seq_len]
+        '''
+        input_Q = x
+        input_K = x
+        input_V = x
+        residual, batch_size = input_Q, input_Q.size(0)
+        # (B, S, D) -proj-> (B, S, D_new) -split-> (B, S, H, W) -trans-> (B, H, S, W)
+        Q = self.W_Q(input_Q).view(batch_size, -1, self.n_heads, self.d_k).transpose(1,2)  # Q: [batch_size, n_heads, len_q, d_k]
+        K = self.W_K(input_K).view(batch_size, -1, self.n_heads, self.d_k).transpose(1,2)  # K: [batch_size, n_heads, len_k, d_k]
+        V = self.W_V(input_V).view(batch_size, -1, self.n_heads, self.d_v).transpose(1,2)  # V: [batch_size, n_heads, len_v(=len_k), d_v]
+
+        # context: [batch_size, n_heads, len_q, d_v], attn: [batch_size, n_heads, len_q, len_k]
+        context = ScaledDotProductAttention()(Q, K, V, self.d_k)
+        context = context.transpose(1, 2).reshape(batch_size, -1, self.n_heads * self.d_v) # context: [batch_size, len_q, n_heads * d_v]
+        output = self.fc(context) # [batch_size, len_q, d_model]
+        return self.norm(output + residual)
+
+class Multi_Head4(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.multi_head = MultiHeadAttention()
+    def forward(self,x):
+        x_shape = x.shape
+        x = x.reshape(x_shape[0],x_shape[1],x_shape[2]*x_shape[3])
+        x = x.permute(0,2,1)
+        #-------------多头注意力强化特征-------------#
+        x = self.multi_head(x)
+        return x
+
+class PoswiseFeedForwardNet(nn.Module):
+    def __init__(self,d_model=128,d_ff=512):
+        super(PoswiseFeedForwardNet, self).__init__()
+        self.fc = nn.Sequential(
+            nn.Linear(d_model, d_ff, bias=False),
+            nn.ReLU(),
+            nn.Linear(d_ff, d_model, bias=False)
+        )
+        self.norm = nn.LayerNorm(d_model)
+    def forward(self, inputs):
+        '''
+        inputs: [batch_size, seq_len, d_model]
+        '''
+        residual = inputs 
+        output = self.fc(inputs) 
+        return self.norm(output + residual)
 
 class complete_graph_network(nn.Module):
 
@@ -193,29 +271,42 @@ class complete_graph_network(nn.Module):
         self.layer12 = self._make_layer(block, 128, 128, 2,stride=2)
         self.layer13 = nn.Sequential(self._make_layer(block, 128, 128, 2,stride=2),
                         self._make_layer(block, 128, 128, 2,stride=2))
+        # self.layer14 = nn.Sequential(self._make_layer(block, 128, 128, 2,stride=2),
+        #                 self._make_layer(block, 128, 128, 2,stride=2),
+        #                 self._make_layer(block, 128, 128, 2,stride=2))
+        # self.layer15 = nn.Sequential(self._make_layer(block, 128, 128, 2,stride=2),
+        #                 self._make_layer(block, 128, 128, 2,stride=2),
+        #                 self._make_layer(block, 128, 128, 2,stride=2),
+        #                 self._make_layer(block, 128, 128, 2,stride=2))
         self.layer14 = nn.Sequential(self._make_layer(block, 128, 128, 2,stride=2),
                         self._make_layer(block, 128, 128, 2,stride=2),
-                        self._make_layer(block, 128, 128, 2,stride=2))
+                        Multi_Head4())
         self.layer15 = nn.Sequential(self._make_layer(block, 128, 128, 2,stride=2),
                         self._make_layer(block, 128, 128, 2,stride=2),
-                        self._make_layer(block, 128, 128, 2,stride=2),
-                        self._make_layer(block, 128, 128, 2,stride=2))
+                        Multi_Head4(),
+                        MultiHeadAttention())
           
         self.layer23 = self._make_layer(block, 128, 128, 2, stride=2)
         self.layer24 = nn.Sequential(self._make_layer(block, 128, 128, 2, stride=2),
-                        self._make_layer(block, 128, 128, 2, stride=2))
+                        Multi_Head4())
         self.layer25 = nn.Sequential(self._make_layer(block, 128, 128, 2, stride=2),
-                        self._make_layer(block, 128, 128, 2, stride=2),
-                        self._make_layer(block, 128, 128, 2, stride=2))
+                        Multi_Head4(),
+                        MultiHeadAttention())
 
-        self.layer34 = self._make_layer(block, 128, 128, 2, stride=2)
-        self.layer35 = nn.Sequential(self._make_layer(block, 128, 128, 2, stride=2),
-                        self._make_layer(block, 128, 128, 2, stride=2))
+        self.layer34 = Multi_Head4()
+        self.layer35 = nn.Sequential(Multi_Head4(),
+                        MultiHeadAttention())
     
-        self.layer45 = self._make_layer(block, 128, 128, 2, stride=2)
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc1 = nn.Sequential(nn.Linear(128,512),nn.LayerNorm(512),nn.ReLU())
-        self.fc = nn.Linear(512, num_classes)
+        self.layer45 = MultiHeadAttention()
+        # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        # self.fc1 = nn.Sequential(nn.Linear(128,512),nn.LayerNorm(512),nn.ReLU())
+        # self.fc = nn.Linear(512, num_classes)
+
+        self.Feed_forward = PoswiseFeedForwardNet()
+        self.projection = nn.Sequential(
+            nn.LayerNorm(128),
+            nn.Linear(128, num_classes)
+        )
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -287,10 +378,14 @@ class complete_graph_network(nn.Module):
         x4 = self.layer14(x) + self.layer24(x2) + self.layer34(x3)
         x5 = self.layer15(x) + self.layer25(x2) + self.layer35(x3) + self.layer45(x4)
 
-        x = self.avgpool(x5)
-        x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = self.fc(x)
+        # x = self.avgpool(x5)
+        # x = torch.flatten(x, 1)
+        # x = self.fc1(x)
+        # x = self.fc(x)
+
+        x = self.Feed_forward(x5)
+        x = x.mean(dim = 1)
+        x = self.projection(x)
 
         if self.training:
             #得到损失函数值

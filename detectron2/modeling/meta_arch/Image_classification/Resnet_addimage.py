@@ -1,8 +1,10 @@
 import copy
 from multiprocessing.context import set_spawning_popen
 from re import S
+from turtle import forward
 
 import black
+from numpy import block
 from ..build import META_ARCH_REGISTRY
 import torch
 
@@ -11,6 +13,10 @@ from torch import Tensor
 import torch.nn as nn
 from typing import Dict, Type, Any, Callable, Union, List, Optional
 from torchvision import transforms
+from torch.nn.modules.conv import _ConvNd
+from torch.nn.common_types import _size_2_t
+from torch.nn.modules.utils import _pair
+import torch.nn.functional as F
 
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
@@ -30,15 +36,100 @@ model_urls = {
     'wide_resnet101_2': 'https://download.pytorch.org/models/wide_resnet101_2-32ee1156.pth',
 }
 
+class Conv2d(_ConvNd):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: _size_2_t,
+        stride: _size_2_t = 1,
+        padding: _size_2_t = 0,
+        dilation: _size_2_t = 1,
+        groups: int = 1,
+        bias: bool = True,
+        padding_mode: str = 'zeros'  # TODO: refine this type
+    ):
+        kernel_size_ = _pair(kernel_size)
+        stride_ = _pair(stride)
+        padding_ = _pair(padding)
+        dilation_ = _pair(dilation)
+        super(Conv2d, self).__init__(
+            in_channels, out_channels, kernel_size_, stride_, padding_, dilation_,
+            False, _pair(0), groups, bias, padding_mode)
+        
+        self.avgpool = nn.AvgPool2d(kernel_size=3,stride=2,padding=1)
+        self.dim1 = int(out_channels/3)
+        self.dim2 = int(out_channels/3)
+        self.dim3 = out_channels - self.dim1 -self.dim2
 
-def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
+    def _conv_forward(self, input: Tensor, weight: Tensor, bias: Optional[Tensor]):
+        if self.padding_mode != 'zeros':
+            return F.conv2d(F.pad(input, self._reversed_padding_repeated_twice, mode=self.padding_mode),
+                            weight, bias, self.stride,
+                            _pair(0), self.dilation, self.groups)
+        return F.conv2d(input, weight, bias, self.stride,
+                        self.padding, self.dilation, self.groups)
+
+    def forward(self, input: Tensor, originalImage) -> Tensor:
+        if input.shape[2] == originalImage.shape[2]:
+            if self.stride[0] == 1: 
+                originalImage1 = originalImage[:,0,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim1,originalImage.shape[2],originalImage.shape[3])
+                originalImage2 = originalImage[:,1,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim2,originalImage.shape[2],originalImage.shape[3])
+                originalImage3 = originalImage[:,2,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim3,originalImage.shape[2],originalImage.shape[3])
+                originalImage = torch.cat([originalImage1,originalImage2,originalImage3],dim=1)
+                conv_out = self._conv_forward(input, self.weight, self.bias)
+                con_mean = torch.max(conv_out)-torch.min(conv_out)
+                o_mean = torch.max(originalImage)-torch.min(originalImage)
+                w = (con_mean/(10*o_mean))
+                #b = originalImage * (torch.mean(conv_out)/(3*torch.mean(originalImage)))
+                return conv_out + originalImage * w
+            else:
+                originalImage = self.avgpool(originalImage)
+                originalImage1 = originalImage[:,0,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim1,originalImage.shape[2],originalImage.shape[3])
+                originalImage2 = originalImage[:,1,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim2,originalImage.shape[2],originalImage.shape[3])
+                originalImage3 = originalImage[:,2,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim3,originalImage.shape[2],originalImage.shape[3])
+                originalImage = torch.cat([originalImage1,originalImage2,originalImage3],dim=1)
+                conv_out = self._conv_forward(input, self.weight, self.bias)
+                con_mean = torch.max(conv_out)-torch.min(conv_out)
+                o_mean = torch.max(originalImage)-torch.min(originalImage)
+                w = (con_mean/(10*o_mean))
+                #b = originalImage * (torch.mean(conv_out)/(3*torch.mean(originalImage)))
+                return conv_out + originalImage * w
+        else:
+            while input.shape[2] < originalImage.shape[2]:
+                originalImage = self.avgpool(originalImage)
+            if self.stride[0] == 1: 
+                originalImage1 = originalImage[:,0,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim1,originalImage.shape[2],originalImage.shape[3])
+                originalImage2 = originalImage[:,1,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim2,originalImage.shape[2],originalImage.shape[3])
+                originalImage3 = originalImage[:,2,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim3,originalImage.shape[2],originalImage.shape[3])
+                originalImage = torch.cat([originalImage1,originalImage2,originalImage3],dim=1)
+                conv_out = self._conv_forward(input, self.weight, self.bias)
+                con_mean = torch.max(conv_out)-torch.min(conv_out)
+                o_mean = torch.max(originalImage)-torch.min(originalImage)
+                w = (con_mean/(10*o_mean))
+                #b = originalImage * (torch.mean(conv_out)/(3*torch.mean(originalImage)))
+                return conv_out + originalImage * w
+            else:
+                originalImage = self.avgpool(originalImage)
+                originalImage1 = originalImage[:,0,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim1,originalImage.shape[2],originalImage.shape[3])
+                originalImage2 = originalImage[:,1,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim2,originalImage.shape[2],originalImage.shape[3])
+                originalImage3 = originalImage[:,2,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim3,originalImage.shape[2],originalImage.shape[3])
+                originalImage = torch.cat([originalImage1,originalImage2,originalImage3],dim=1)
+                conv_out = self._conv_forward(input, self.weight, self.bias)
+                con_mean = torch.max(conv_out)-torch.min(conv_out)
+                o_mean = torch.max(originalImage)-torch.min(originalImage)
+                w = (con_mean/(10*o_mean))
+                #b = originalImage * (torch.mean(conv_out)/(3*torch.mean(originalImage)))
+                return conv_out + originalImage * w
+
+def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> Conv2d:
     """3x3 convolution with padding"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,padding=dilation, groups=groups, bias=False, dilation=dilation) 
+    return Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,padding=dilation, groups=groups, bias=False, dilation=dilation) 
 
 
-def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
+def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> Conv2d:
     """1x1 convolution"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
+    return Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
 
 
 class BasicBlock(nn.Module):
@@ -50,42 +141,54 @@ class BasicBlock(nn.Module):
         planes: int,
         stride: int = 1,
         downsample: Optional[nn.Module] = None,
-        groups: int = 1,
-        base_width: int = 64,
-        dilation: int = 1,
-        norm_layer: Optional[Callable[..., nn.Module]] = None
+        N=1
     ) -> None:
         super(BasicBlock, self).__init__()
-        if norm_layer is None:
-            norm_layer = nn.BatchNorm2d
-        if groups != 1 or base_width != 64:
-            raise ValueError('BasicBlock only supports groups=1 and base_width=64')
-        if dilation > 1:
-            raise NotImplementedError("Dilation > 1 not supported in BasicBlock")
-        # Both self.conv1 and self.downsample layers downsample the input when stride != 1
-        self.conv1 = conv3x3(inplanes, planes, stride)
-        self.bn1 = norm_layer(planes)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3(planes, planes)
-        self.bn2 = norm_layer(planes)
-        self.downsample = downsample
-        self.stride = stride
 
-    def forward(self, x: Tensor) -> Tensor:
-        identity = x
+        self.N = N
+        if N==1:
+            self.conv1 = conv3x3(inplanes, planes, stride)
+            self.bn1 = nn.BatchNorm2d(planes)
+            self.relu = nn.ReLU(inplace=True)
+            self.conv2 = conv3x3(planes, planes)
+            self.bn2 = nn.BatchNorm2d(planes)
+            self.downsample = downsample
+            self.stride = stride
+        else:
+            self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=3,stride=stride,padding=1,bias=False)
+            self.bn1 = nn.BatchNorm2d(planes)
+            self.relu = nn.ReLU(inplace=True)
+            self.conv2 = nn.Conv2d(planes, planes,kernel_size=3,stride=1,padding=1,bias=False)
+            self.bn2 = nn.BatchNorm2d(planes)
+            self.downsample = downsample
+            self.stride = stride
 
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
+    def forward(self, x: Tensor,originalImage) -> Tensor:
+        if self.N == 1:
+            identity = x
+            out = self.conv1(x,originalImage)
+            out = self.bn1(out)
+            out = self.relu(out)
 
-        out = self.conv2(out)
-        out = self.bn2(out)
+            out = self.conv2(out,originalImage)
+            out = self.bn2(out)
 
-        if self.downsample is not None:
-            identity = self.downsample(x)
+            if self.downsample is not None:
+                identity = self.downsample(x,originalImage)
 
-        out += identity
-        out = self.relu(out)
+            out += identity
+            out = self.relu(out)
+        else:
+            identity = x
+            out = self.conv1(x)
+            out = self.bn1(out)
+            out = self.relu(out)
+            out = self.conv2(out)
+            out = self.bn2(out)
+            if self.downsample is not None:
+                identity = self.downsample(x,originalImage)
+            out += identity
+            out = self.relu(out)
 
         return out
 
@@ -147,6 +250,64 @@ class Bottleneck(nn.Module):
 
         return out
 
+class Downsample(nn.Module):
+    def __init__(self,inplanes, planes, stride,N=1):
+        super().__init__()
+        self.N = N
+        if N ==1:
+            self.conv = conv1x1(inplanes, planes,stride)
+            self.bn = nn.BatchNorm2d(planes)
+        else:
+            self.conv = nn.Conv2d(inplanes, planes,kernel_size=1,stride=stride)
+            self.bn = nn.BatchNorm2d(planes)
+    def forward(self,x,originalImage):
+        if self.N == 1:
+            x = self.conv(x,originalImage)
+            x = self.bn(x)
+        else:
+            x = self.conv(x)
+            x = self.bn(x)
+        return x
+
+class make_layer(nn.Module):
+    def __init__(self, block: Type[Union[BasicBlock, Bottleneck]],inplanes, planes: int, blocks: int,
+                    stride: int = 1, N=1):
+        super().__init__()
+        downsample = None
+        if N == 1:
+            if stride != 1 or inplanes != planes * block.expansion:
+                downsample = Downsample(inplanes, planes * block.expansion, stride)
+            self.block0 = block(inplanes, planes, stride, downsample)
+            for i in range(1, blocks):
+                self.add_module("block"+str(i),block(planes * block.expansion, planes))
+        else:
+            if stride != 1 or inplanes != planes * block.expansion:
+                downsample = Downsample(inplanes, planes * block.expansion, stride, N)
+            self.block0 = block(inplanes, planes, stride, downsample,N)
+            for i in range(1, blocks):
+                self.add_module("block"+str(i),block(planes * block.expansion, planes,N=N))
+
+        self.blocks = blocks
+        
+    def forward(self,x,originalImage):   
+        for i in range(0, self.blocks):
+            x = self[i](x,originalImage)
+        return x
+
+    def __getitem__(self,index):
+        
+        assert index<4,"没有这么多网络层！"
+        if index==0:
+            if isinstance(self.block0,BasicBlock):
+                return self.block0
+        if index==1:
+            return self.block1
+        if index==2:
+            return self.block2
+        if index == 3:
+            return self.block3
+
+
 
 class ResNet(nn.Module):
 
@@ -190,17 +351,17 @@ class ResNet(nn.Module):
                         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)))
 
 
-        self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,bias=False)
+        self.conv1 = Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,bias=False)
         self.bn1 = norm_layer(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-        self.layer1 = self._make_layer(block, planes, layers[0])      
-        self.layer2 = self._make_layer(block, 2*planes, layers[1], stride=2,
-                                       dilate=replace_stride_with_dilation[0])
-        self.layer3 = self._make_layer(block, 4*planes, layers[2], stride=2,
-                                       dilate=replace_stride_with_dilation[1])
-        self.layer4 = self._make_layer(block, 8*planes, layers[3], stride=2,
-                                       dilate=replace_stride_with_dilation[2])
+        self.layer1 = make_layer(block,inplanes, planes, layers[0],N=1)
+        inplanes = planes*block.expansion
+        self.layer2 = make_layer(block,inplanes, 2*planes, layers[1], stride=2,N=2)
+        inplanes = 2*planes*block.expansion
+        self.layer3 = make_layer(block, inplanes, 4*planes, layers[2], stride=2,N=3)
+        inplanes = 4*planes*block.expansion
+        self.layer4 = make_layer(block, inplanes, 8*planes, layers[3], stride=2,N=4)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         if layers[3] == 0:
@@ -209,7 +370,7 @@ class ResNet(nn.Module):
             self.fc = nn.Linear(8*planes, num_classes)
 
         for m in self.modules():
-            if isinstance(m, nn.Conv2d):
+            if isinstance(m, Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
                 nn.init.constant_(m.weight, 1)
@@ -224,31 +385,6 @@ class ResNet(nn.Module):
                     nn.init.constant_(m.bn3.weight, 0)  # type: ignore[arg-type]
                 elif isinstance(m, BasicBlock):
                     nn.init.constant_(m.bn2.weight, 0)  # type: ignore[arg-type]
-
-    def _make_layer(self, block: Type[Union[BasicBlock, Bottleneck]], planes: int, blocks: int,
-                    stride: int = 1, dilate: bool = False) -> nn.Sequential:
-        norm_layer = self._norm_layer
-        downsample = None
-        previous_dilation = self.dilation
-        if dilate:
-            self.dilation *= stride
-            stride = 1
-        if stride != 1 or self.inplanes != planes * block.expansion:
-            downsample = nn.Sequential(
-                conv1x1(self.inplanes, planes * block.expansion, stride),
-                norm_layer(planes * block.expansion),
-            )
-
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, self.groups,
-                            self.base_width, previous_dilation, norm_layer))
-        self.inplanes = planes * block.expansion
-        for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes, groups=self.groups,
-                                base_width=self.base_width, dilation=self.dilation,
-                                norm_layer=norm_layer))
-
-        return nn.Sequential(*layers)
 
     def _forward_impl(self, data: Dict) -> Tensor:
         
@@ -268,15 +404,15 @@ class ResNet(nn.Module):
             batch_images_tensor = self.transforms_evel(batch_images_tensor)
 
         # See note [TorchScript super()]
-        x = self.conv1(batch_images_tensor)
+        x = self.conv1(batch_images_tensor,batch_images_tensor)
         x = self.bn1(x)
         x = self.relu(x)
         #x = self.maxpool(x)
 
-        x = self.layer1(x) 
-        x = self.layer2(x) 
-        x = self.layer3(x) 
-        #x = self.layer4(x)
+        x = self.layer1(x,batch_images_tensor) 
+        x = self.layer2(x,batch_images_tensor) 
+        x = self.layer3(x,batch_images_tensor) 
+        #x = self.layer4(x,batch_images_tensor)
 
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
@@ -317,7 +453,7 @@ def resnet20(pretrained: bool = False, progress: bool = True, **kwargs: Any) -> 
         progress (bool): If True, displays a progress bar of the download to stderr
     """
     model = _resnet('resnet20', BasicBlock, [3, 3, 3, 0], pretrained,progress,inplance=16,**kwargs)
-    model.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1,bias=False)
+    model.conv1 = Conv2d(3, 16, kernel_size=3, stride=1, padding=1,bias=False)
     model.maxpool = nn.Identity()
     model.layer4 = nn.Identity()
     return model
@@ -446,52 +582,26 @@ def wide_resnet101_2(pretrained: bool = False, progress: bool = True, **kwargs: 
                    pretrained, progress, **kwargs)
 
 @META_ARCH_REGISTRY.register()
-def Resnet20(cfg):
+def Resnet20_addimage(cfg):
     return resnet20(num_classes=cfg.num_classes)
 
 @META_ARCH_REGISTRY.register()
-def Resnet18(cfg):
+def Resnet18_addimage(cfg):
     return resnet18(num_classes=cfg.num_classes)
 
 @META_ARCH_REGISTRY.register()
-def Resnet34(cfg):
+def Resnet34_add_image(cfg):
     return resnet34(num_classes=cfg.num_classes)
 
 @META_ARCH_REGISTRY.register()
-def Resnet50(cfg):
+def Resnet50_addimage(cfg):
     return resnet50(num_classes=cfg.num_classes)
 
 @META_ARCH_REGISTRY.register()
-def Resnet101(cfg):
+def Resnet101_addimage(cfg):
     return resnet101(num_classes=cfg.num_classes)
 
 @META_ARCH_REGISTRY.register()
-def Resnet152(cfg):
+def Resnet152_addimage(cfg):
     return resnet152(num_classes=cfg.num_classes)
 
-@META_ARCH_REGISTRY.register()
-def ResNeXt50(cfg):
-    return resnext50_32x4d(num_classes=cfg.num_classes)
-
-@META_ARCH_REGISTRY.register()
-def ResNeXt101(cfg):
-    return resnext101_32x8d(num_classes=cfg.num_classes)
-
-@META_ARCH_REGISTRY.register()
-def Wide_resnet50_2(cfg):
-    return wide_resnet50_2(num_classes=cfg.num_classes)
-
-@META_ARCH_REGISTRY.register()
-def Wide_resnet101_2(cfg):
-    return wide_resnet101_2(num_classes=cfg.num_classes)
-
-
-if __name__ =='__main__':
-    # model = ResNeXtBlock(in_places=256, places=128)
-    # print(model)
-    # model = ResNeXt50_32x4d()
-    model = ResNeXt101()
-
-    input = torch.randn(1, 3, 224, 224)
-    out = model(input)
-    print(out.shape)

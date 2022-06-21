@@ -30,7 +30,7 @@ from .Multimodal_data_fusion.Resnet_Transformer import Resnet_tranformer
 from .Multimodal_data_fusion.Resnet_Decoder import Resnet_decoder
 from .Multimodal_data_fusion.Resnet_Encoder import Resnet_encoder
 
-from .Image_classification.Resnext import Resnet18,Resnet34,Resnet50,Resnet101,Resnet152,ResNeXt50,ResNeXt101,Wide_resnet50_2,Wide_resnet101_2
+from .Image_classification.Resnext import Resnet20,Resnet18,Resnet34,Resnet50,Resnet101,Resnet152,ResNeXt50,ResNeXt101,Wide_resnet50_2,Wide_resnet101_2
 from .Image_classification.VIT import Vit_b_16,Vit_b_32,Vit_l_16,Vit_l_32,Vit_small
 from .Image_classification.Swin_Transformer import SwinTransformer
 from .Image_classification.SE_Resnext import se_resnext_50,se_resnext_101,se_resnext_152
@@ -44,5 +44,8 @@ from .Image_classification.Sliding_attention_module import Sliding_attention_Net
 from .Image_classification.Sliding_Full_connection import Sliding_Full_connection50,Sliding_Full_connection18
 from .Image_classification.Complete_graph_network import Complete_graph_network18
 from .Image_classification.Complete_graph_MultiHead_Network import Complete_graph_Vit_b_16
+from .Image_classification.Fractal_network import Fractal_network
+from .Image_classification.DenseNet import densenet121,densenet161,densenet169,densenet201,densenet_k12_D40
+from .Image_classification.Resnet_addimage import Resnet20_addimage,Resnet18_addimage,Resnet34_add_image,Resnet50_addimage,Resnet101_addimage,Resnet152_addimage
 
 __all__ = list(globals().keys())
