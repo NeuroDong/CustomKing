@@ -2,6 +2,7 @@ import copy
 from multiprocessing.context import set_spawning_popen
 from re import S
 from turtle import forward
+from typing_extensions import Required
 
 import black
 from numpy import block
@@ -61,6 +62,7 @@ class Conv2d(_ConvNd):
         self.dim1 = int(out_channels/3)
         self.dim2 = int(out_channels/3)
         self.dim3 = out_channels - self.dim1 -self.dim2
+        self.w = nn.Parameter(torch.Tensor([0.1]),requires_grad=True)
 
     def _conv_forward(self, input: Tensor, weight: Tensor, bias: Optional[Tensor]):
         if self.padding_mode != 'zeros':
@@ -78,11 +80,11 @@ class Conv2d(_ConvNd):
                 originalImage3 = originalImage[:,2,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim3,originalImage.shape[2],originalImage.shape[3])
                 originalImage = torch.cat([originalImage1,originalImage2,originalImage3],dim=1)
                 conv_out = self._conv_forward(input, self.weight, self.bias)
-                con_mean = torch.max(conv_out)-torch.min(conv_out)
-                o_mean = torch.max(originalImage)-torch.min(originalImage)
-                w = (con_mean/(10*o_mean))
+                # con_mean = torch.max(conv_out)-torch.min(conv_out)
+                # o_mean = torch.max(originalImage)-torch.min(originalImage)
+                # w = (con_mean/(o_mean))
                 #b = originalImage * (torch.mean(conv_out)/(3*torch.mean(originalImage)))
-                return conv_out + originalImage * w
+                return conv_out + originalImage * self.w
             else:
                 originalImage = self.avgpool(originalImage)
                 originalImage1 = originalImage[:,0,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim1,originalImage.shape[2],originalImage.shape[3])
@@ -90,11 +92,11 @@ class Conv2d(_ConvNd):
                 originalImage3 = originalImage[:,2,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim3,originalImage.shape[2],originalImage.shape[3])
                 originalImage = torch.cat([originalImage1,originalImage2,originalImage3],dim=1)
                 conv_out = self._conv_forward(input, self.weight, self.bias)
-                con_mean = torch.max(conv_out)-torch.min(conv_out)
-                o_mean = torch.max(originalImage)-torch.min(originalImage)
-                w = (con_mean/(10*o_mean))
+                # con_mean = torch.max(conv_out)-torch.min(conv_out)
+                # o_mean = torch.max(originalImage)-torch.min(originalImage)
+                # w = (con_mean/(o_mean))
                 #b = originalImage * (torch.mean(conv_out)/(3*torch.mean(originalImage)))
-                return conv_out + originalImage * w
+                return conv_out + originalImage * self.w
         else:
             while input.shape[2] < originalImage.shape[2]:
                 originalImage = self.avgpool(originalImage)
@@ -104,11 +106,11 @@ class Conv2d(_ConvNd):
                 originalImage3 = originalImage[:,2,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim3,originalImage.shape[2],originalImage.shape[3])
                 originalImage = torch.cat([originalImage1,originalImage2,originalImage3],dim=1)
                 conv_out = self._conv_forward(input, self.weight, self.bias)
-                con_mean = torch.max(conv_out)-torch.min(conv_out)
-                o_mean = torch.max(originalImage)-torch.min(originalImage)
-                w = (con_mean/(10*o_mean))
+                # con_mean = torch.max(conv_out)-torch.min(conv_out)
+                # o_mean = torch.max(originalImage)-torch.min(originalImage)
+                # w = (con_mean/(o_mean))
                 #b = originalImage * (torch.mean(conv_out)/(3*torch.mean(originalImage)))
-                return conv_out + originalImage * w
+                return conv_out + originalImage * self.w
             else:
                 originalImage = self.avgpool(originalImage)
                 originalImage1 = originalImage[:,0,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim1,originalImage.shape[2],originalImage.shape[3])
@@ -116,11 +118,11 @@ class Conv2d(_ConvNd):
                 originalImage3 = originalImage[:,2,:,:].unsqueeze(dim=1).expand(originalImage.shape[0],self.dim3,originalImage.shape[2],originalImage.shape[3])
                 originalImage = torch.cat([originalImage1,originalImage2,originalImage3],dim=1)
                 conv_out = self._conv_forward(input, self.weight, self.bias)
-                con_mean = torch.max(conv_out)-torch.min(conv_out)
-                o_mean = torch.max(originalImage)-torch.min(originalImage)
-                w = (con_mean/(10*o_mean))
+                # con_mean = torch.max(conv_out)-torch.min(conv_out)
+                # o_mean = torch.max(originalImage)-torch.min(originalImage)
+                # w = (con_mean/(o_mean))
                 #b = originalImage * (torch.mean(conv_out)/(3*torch.mean(originalImage)))
-                return conv_out + originalImage * w
+                return conv_out + originalImage * self.w
 
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> Conv2d:
     """3x3 convolution with padding"""
@@ -357,11 +359,11 @@ class ResNet(nn.Module):
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = make_layer(block,inplanes, planes, layers[0],N=1)
         inplanes = planes*block.expansion
-        self.layer2 = make_layer(block,inplanes, 2*planes, layers[1], stride=2,N=2)
+        self.layer2 = make_layer(block,inplanes, 2*planes, layers[1], stride=2,N=1)
         inplanes = 2*planes*block.expansion
-        self.layer3 = make_layer(block, inplanes, 4*planes, layers[2], stride=2,N=3)
+        self.layer3 = make_layer(block, inplanes, 4*planes, layers[2], stride=2,N=1)
         inplanes = 4*planes*block.expansion
-        self.layer4 = make_layer(block, inplanes, 8*planes, layers[3], stride=2,N=4)
+        self.layer4 = make_layer(block, inplanes, 8*planes, layers[3], stride=2,N=1)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
         if layers[3] == 0:

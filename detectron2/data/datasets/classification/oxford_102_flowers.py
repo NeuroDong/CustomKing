@@ -18,4 +18,4 @@ def load_flowers102(dirnames,Classnumber=Classnumber):
 
 def register_flowers102(name,dirname):
     DatasetCatalog.register(name, lambda: load_flowers102(dirname))
-    #data = DatasetCatalog.get(name)
+    data = DatasetCatalog.get(name)
