@@ -17,5 +17,5 @@ def load_icron_water(dirnames,Classnumber):
 def register_icron_water(name,dirname,Classnumber=Classnumber):
     DatasetCatalog.register(name, lambda: load_icron_water(dirname, Classnumber))
     # # later, to access the data:
-    data = DatasetCatalog.get(name)
+    #data = DatasetCatalog.get(name)
     #print(data)

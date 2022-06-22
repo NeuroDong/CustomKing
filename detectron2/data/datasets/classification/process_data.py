@@ -20,5 +20,5 @@ def load_process_data(dirnames,Classnumber):
 def register_process_data(name,dirname,Classnumber=Classnumber):
     DatasetCatalog.register(name, lambda: load_process_data(dirname, Classnumber))
     # # later, to access the data:
-    data = DatasetCatalog.get(name)
+    #data = DatasetCatalog.get(name)
     #print(data)
