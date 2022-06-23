@@ -635,3 +635,5 @@ cfg.DATASETS.TEST = "配置参数名" #测试数据集
 - **2022.6.7 训练过程可视化优化**
   - 在训练过程中展示训练准确度与测试集准确度，每训练一个epoch进行一次测试集评估。
   - 加入训练准确度和测试准确度的可视化函数，以及训练过程的误差可视化函数，见：https://github.com/NeuroDong/Detectron2-All/blob/main/visualizate/Classification/plt_acc.py 与 https://github.com/NeuroDong/Detectron2-All/blob/main/visualizate/Classification/plt_error.py 。
+- **2022.6.23 提供将网络模型变成符号编程的方式，以提高训练和推理速度**
+  - 利用torch.jit.script将模型转化成符号编程，加快推理速度
