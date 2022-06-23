@@ -214,7 +214,7 @@ class DenseNet(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.constant_(m.bias, 0)
 
-        self.transforms_train = nn.Sequential(transforms.Pad(4),
+        self.transforms_train = nn.Sequential(transforms.Pad([4]),
                         transforms.RandomCrop(32),
                         transforms.RandomHorizontalFlip(),
                         #transforms.Resize(224),
@@ -223,17 +223,7 @@ class DenseNet(nn.Module):
         self.transforms_evel = nn.Sequential(#transforms.Resize(224),
                         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)))
 
-    def forward(self, data) -> Tensor:
-
-        #------------------预处理(data里面既含有image、label、width、height信息。)-----------------#
-        batchsize = len(data)
-        batch_images = []
-        batch_label = []
-        for i in range(0,batchsize,1):
-            batch_images.append(data[i]["image"])
-            batch_label.append(int(float(data[i]["y"])))
-        batch_images=[image.tolist() for image in batch_images]
-        batch_images_tensor = torch.tensor(batch_images,dtype=torch.float).cuda().clone().detach()
+    def forward(self, batch_images_tensor) -> Tensor:
 
         if self.training:
             batch_images_tensor = self.transforms_train(batch_images_tensor)
@@ -246,15 +236,7 @@ class DenseNet(nn.Module):
         out = torch.flatten(out, 1)
         x = self.classifier(out)
 
-        if self.training:
-            #得到损失函数值
-            batch_label = torch.tensor(batch_label,dtype=float).cuda()
-            loss_fun = nn.CrossEntropyLoss()
-            loss = loss_fun(x,batch_label.long())
-            return loss,x
-        else:
-            #直接返回推理结果
-            return x
+        return x
 
 def _densenet(
     arch: str,

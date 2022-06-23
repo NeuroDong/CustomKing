@@ -255,7 +255,7 @@ class complete_graph_network(nn.Module):
         self.groups = groups
         self.base_width = width_per_group
 
-        self.transforms_train = nn.Sequential(transforms.Pad(4),
+        self.transforms_train = nn.Sequential(transforms.Pad([4]),
                         transforms.RandomHorizontalFlip(),
                         transforms.RandomCrop(32),
                         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)))
@@ -350,17 +350,7 @@ class complete_graph_network(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def _forward_impl(self, data: Dict) -> Tensor:
-        
-        #------------------预处理(data里面既含有image、label、width、height信息。)-----------------#
-        batchsize = len(data)
-        batch_images = []
-        batch_label = []
-        for i in range(0,batchsize,1):
-            batch_images.append(data[i]["image"])
-            batch_label.append(int(float(data[i]["y"])))
-        batch_images=[image.tolist() for image in batch_images]
-        batch_images_tensor = torch.tensor(batch_images,dtype=torch.float).cuda().clone().detach()
+    def _forward_impl(self, batch_images_tensor) -> Tensor:
 
         if self.training:
             batch_images_tensor = self.transforms_train(batch_images_tensor)
@@ -387,15 +377,7 @@ class complete_graph_network(nn.Module):
         x = x.mean(dim = 1)
         x = self.projection(x)
 
-        if self.training:
-            #得到损失函数值
-            batch_label = torch.tensor(batch_label,dtype=float).cuda()
-            loss_fun = nn.CrossEntropyLoss()
-            loss = loss_fun(x,batch_label.long())
-            return loss,x
-        else:
-            #直接返回推理结果
-            return x
+        return x
 
     def forward(self, x: Tensor) -> Tensor:
         return self._forward_impl(x)

@@ -242,7 +242,7 @@ class VisionTransformer(nn.Module):
         self.representation_size = representation_size
         self.norm_layer = norm_layer
 
-        self.transforms_train = nn.Sequential(transforms.Pad(4),
+        self.transforms_train = nn.Sequential(transforms.Pad([4]),
                         transforms.RandomCrop(32),
                         transforms.RandomHorizontalFlip(),
                         #transforms.Resize(224),
@@ -342,7 +342,7 @@ class VisionTransformer(nn.Module):
         n_w = w // p
 
         # (n, c, h, w) -> (n, hidden_dim, n_h, n_w)
-        x = self.conv_proj(x)
+        x = self.conv_proj(x).float()
         # (n, hidden_dim, n_h, n_w) -> (n, hidden_dim, (n_h * n_w))
         x = x.reshape(n, self.hidden_dim, n_h * n_w)
 
@@ -353,17 +353,7 @@ class VisionTransformer(nn.Module):
         x = x.permute(0, 2, 1)
         return x
 
-    def forward(self, data: Dict):
-
-        #------------------预处理(data里面既含有image、label、width、height信息。)-----------------#
-        batchsize = len(data)
-        batch_images = []
-        batch_label = []
-        for i in range(0,batchsize,1):
-            batch_images.append(data[i]["image"])
-            batch_label.append(int(float(data[i]["y"])))
-        batch_images=[image.tolist() for image in batch_images]
-        batch_images_tensor = torch.tensor(batch_images,dtype=torch.float)#.cuda().clone().detach()
+    def forward(self, batch_images_tensor):
 
         if self.training:
             batch_images_tensor = self.transforms_train(batch_images_tensor).cuda().clone().detach()
@@ -384,15 +374,7 @@ class VisionTransformer(nn.Module):
 
         x = self.heads(x)
 
-        if self.training:
-            #得到损失函数值
-            batch_label = torch.tensor(batch_label,dtype=float).cuda()
-            loss_fun = nn.CrossEntropyLoss()
-            loss = loss_fun(x,batch_label.long())
-            return loss,x
-        else:
-            #直接返回推理结果
-            return x
+        return x
 
 
 def _vision_transformer(

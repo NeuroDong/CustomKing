@@ -123,19 +123,8 @@ class SE_ResNeXt(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, data):
-        #------------------预处理(data里面既含有image、label、width、height信息。)-----------------#
-        batchsize = len(data)
-        batch_images = []
-        batch_label = []
-        for i in range(0,batchsize,1):
-            image = data[i]["image"]
-            image = self.toPILImage(image)
-            image = self.resize(image)
-            image = self.to_tensor(image)
-            batch_images.append(image)
-            batch_label.append(int(float(data[i]["y"])))
-        batch_images_tensor = self.preprocess(batch_images).cuda().float().clone().detach()
+    def forward(self, batch_images_tensor):
+        batch_images_tensor = self.preprocess(batch_images_tensor).cuda().float().clone().detach()
 
         #-----------------网络向前传播-------------#
         x = self.conv1(batch_images_tensor)
@@ -151,15 +140,7 @@ class SE_ResNeXt(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.fc(x)
 
-        if self.training:
-            #得到损失函数值
-            batch_label = torch.tensor(batch_label,dtype=float).cuda()
-            loss_fun = nn.CrossEntropyLoss()
-            loss = loss_fun(x,batch_label.long())
-            return loss,x
-        else:
-            #直接返回推理结果
-            return x
+        return x
     
     def preprocess(self, batched_inputs):
         """

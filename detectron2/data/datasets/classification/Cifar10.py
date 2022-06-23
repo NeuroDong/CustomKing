@@ -53,7 +53,7 @@ def load_Cifar10(name,root):
 
 def register_Cifar10(name,root):
     DatasetCatalog.register(name, lambda: load_Cifar10(name,root))
-    data = DatasetCatalog.get(name)
+    #data = DatasetCatalog.get(name)
 
 
 

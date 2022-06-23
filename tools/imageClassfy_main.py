@@ -1,6 +1,8 @@
 
 from doctest import OutputChecker
+from typing import Dict, List
 from numpy.core.fromnumeric import mean
+from torch import Tensor
 from detectron2.data import get_detection_dataset_dicts
 from detectron2.data import build_detection_train_loader,build_detection_test_loader
 from detectron2.data.dataset_mapper import Cifar10 as Transforms #如果换数据集，这个数据预处理函数得换
@@ -9,6 +11,7 @@ from detectron2.modeling import build_model
 from detectron2.solver import build_lr_scheduler, build_optimizer
 from detectron2.checkpoint import DetectionCheckpointer,PeriodicCheckpointer
 from sklearn.metrics import f1_score,average_precision_score
+import torch.nn as nn
 
 import numpy as np
 import torch
@@ -36,7 +39,7 @@ def do_test(cfg, model):
         result_list = []
         label_list = []
         for data in tqdm(test_data):
-            inference_result = model(data).cpu().detach().numpy()
+            _,inference_result = model(data).cpu().detach().numpy()
             #print(inference_result)
             result = np.where(inference_result[0]==max(inference_result[0]))
             #print(result)
@@ -116,8 +119,25 @@ def do_train(cfg, model, resume=False):
                 for data, iteration in zip(train_data, range(start_iter, max_iter)):
                         storage.iter = iteration
                         optimizer.zero_grad(set_to_none=True)
+
+                        #--------------------数据预处理--------------------#
+                        batchsize = len(data)
+                        batch_images = []
+                        batch_label = []
+                        for i in range(0,batchsize,1):
+                                dataValue_list = list(data[i].values())
+                                batch_images.append(dataValue_list[0])
+                                batch_label.append(dataValue_list[1])
+                        batch_images_tensor = torch.stack(batch_images,dim=0).cuda().clone().detach().float()
+
                         with torch.cuda.amp.autocast():
-                                loss,predict = model(data)
+                                predict = model(batch_images_tensor)
+
+                        #--------------------计算损失值--------------------#
+                        batch_label_tensor = torch.tensor(batch_label).cuda().float()
+                        loss_fun = nn.CrossEntropyLoss()
+                        loss = loss_fun(predict,batch_label_tensor.long())
+
                         time2 = time.time()
                         #---------------------更新权值---------------------#
                         scaler.scale(loss).backward()
@@ -145,13 +165,22 @@ def do_train(cfg, model, resume=False):
                                 storage.put_scalar("train_acc",train_acc,smoothing_hint=False)
                                 time1 = time.time()
                                 if iteration > 20 and iteration % cfg.SOLVER.CHECKPOINT_PERIOD <20:
-                                        epoch = epoch + 1
                                         result_list = []
                                         label_list = []
                                         model.eval()
                                         with torch.no_grad():
-                                                for data in tqdm(test_data):
-                                                        inference_result = model(data).cpu().detach().numpy()
+                                                for data in tqdm(test_data,ncols=100):
+                                                        #--------------------数据预处理--------------------#
+                                                        batchsize = len(data)
+                                                        batch_images = []
+                                                        batch_label = []
+                                                        for i in range(0,batchsize,1):
+                                                                dataValue_list = list(data[i].values())
+                                                                batch_images.append(dataValue_list[0])
+                                                                batch_label.append(dataValue_list[1])
+                                                        batch_images_tensor = torch.stack(batch_images,dim=0).cuda().clone().detach()
+
+                                                        inference_result = model(batch_images_tensor).cpu().detach().numpy()
                                                         result = np.where(inference_result[0]==max(inference_result[0]))
                                                         result_list.append(result[0][0])
                                                         label_list.append(int(float(data[0]["y"])))
@@ -178,7 +207,7 @@ def main():
         os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
         #--------------------设置配置参数-----------------------------#
         cfg = get_cfg() 
-        cfg.MODEL.META_ARCHITECTURE = "Resnet18" #网络模型
+        cfg.MODEL.META_ARCHITECTURE = "Vit_small" #网络模型
         #------网络模型初始化需要传入的实参,有几个实参，就添加几个------#
         cfg.num_classes = 10
         cfg.ImageSize = 32
@@ -189,12 +218,12 @@ def main():
          #是否加载与训练权重
         cfg.IMS_PER_BATCH = 128 #batchsize
         #cfg.SOLVER.MAX_ITER = 15000 #训练最大iters
-        cfg.SOLVER.EPOCH = 240
-        cfg.OUTPUT_DIR = "output/Cifar10/Resnet18_64000"
+        cfg.OUTPUT_DIR = "output/Cifar10/ceshi_jit"
         cfg.CUDNN_BENCHMARK = True
         #-------------------------建立网络模型------------------------------#
         model = build_model(cfg)
         print("Total number of paramerters in networks is {}  ".format(sum(x.numel() for x in model.parameters())))
+        model = torch.jit.script(model) #如果报错且不知道怎么改，把这一行注释掉就行了
         #---------------------训练与测试------------------------------------#
         if cfg.JUST_EVAL:
                 DetectionCheckpointer(model).load("pre_weights/Resnet_240.pth")#加载权值

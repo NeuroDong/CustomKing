@@ -180,7 +180,7 @@ class ResNet(nn.Module):
         self.groups = groups
         self.base_width = width_per_group
 
-        self.transforms_train = nn.Sequential(transforms.Pad(4),
+        self.transforms_train = nn.Sequential(transforms.Pad([4]),
                         transforms.RandomCrop(32),
                         transforms.RandomHorizontalFlip(),
                         #transforms.Resize(224),
@@ -250,17 +250,7 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def _forward_impl(self, data: Dict) -> Tensor:
-        
-        #------------------预处理(data里面既含有image、label、width、height信息。)-----------------#
-        batchsize = len(data)
-        batch_images = []
-        batch_label = []
-        for i in range(0,batchsize,1):
-            batch_images.append(data[i]["image"])
-            batch_label.append(int(float(data[i]["y"])))
-        batch_images=[image.tolist() for image in batch_images]
-        batch_images_tensor = torch.tensor(batch_images,dtype=torch.float).cuda().clone().detach()
+    def _forward_impl(self, batch_images_tensor) -> Tensor:
 
         if self.training:
             batch_images_tensor = self.transforms_train(batch_images_tensor)
@@ -282,15 +272,7 @@ class ResNet(nn.Module):
         x = torch.flatten(x, 1)
         x = self.fc(x)
 
-        if self.training:
-            #得到损失函数值
-            batch_label = torch.tensor(batch_label,dtype=float).cuda()
-            loss_fun = nn.CrossEntropyLoss()
-            loss = loss_fun(x,batch_label.long())
-            return loss,x
-        else:
-            #直接返回推理结果
-            return x
+        return x
 
     def forward(self, x: Tensor) -> Tensor:
         return self._forward_impl(x)

@@ -216,17 +216,7 @@ class SwinTransformer(nn.Module):
             nn.Linear(hidden_dim * 8, cfg.Arguments2)
         )
 
-    def forward(self, data):
-
-        #------------------预处理(data里面既含有image、label、width、height信息。)-----------------#
-        batchsize = len(data)
-        batch_images = []
-        batch_label = []
-        for i in range(0,batchsize,1):
-            batch_images.append(data[i]["image"])
-            batch_label.append(int(float(data[i]["y"])))
-        batch_images=[image.tolist() for image in batch_images]
-        batch_images_tensor = torch.tensor(batch_images,dtype=torch.float).cuda()
+    def forward(self, batch_images_tensor):
 
         #--------------------网络推理---------------------#
         x = self.stage1(batch_images_tensor)
@@ -236,15 +226,7 @@ class SwinTransformer(nn.Module):
         x = x.mean(dim=[2, 3])
         x = self.mlp_head(x)
 
-        if self.training:
-            #得到损失函数值
-            batch_label = torch.tensor(batch_label,dtype=float).cuda()
-            loss_fun = nn.CrossEntropyLoss()
-            loss = loss_fun(x,batch_label.long())
-            return loss,x
-        else:
-            #直接返回推理结果
-            return x
+        return x
 
 def swin_t(hidden_dim=96, layers=(2, 2, 6, 2), heads=(3, 6, 12, 24), **kwargs):
     return SwinTransformer(hidden_dim=hidden_dim, layers=layers, heads=heads, **kwargs)

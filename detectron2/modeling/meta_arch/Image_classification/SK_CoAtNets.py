@@ -270,16 +270,7 @@ class CoAtNet(nn.Module):
         self.pool = nn.AvgPool2d(ih // 32, 1)
         self.fc = nn.Linear(channels[-1], num_classes, bias=False)
 
-    def forward(self, data):
-        #------------------预处理(data里面既含有image、label、width、height信息。)-----------------#
-        batchsize = len(data)
-        batch_images = []
-        batch_label = []
-        for i in range(0,batchsize,1):
-            batch_images.append(data[i]["image"])
-            batch_label.append(int(float(data[i]["y"])))
-        batch_images=[image.tolist() for image in batch_images]
-        batch_images_tensor = torch.tensor(batch_images,dtype=torch.float).cuda()
+    def forward(self, batch_images_tensor):
 
         x = self.s0(batch_images_tensor)
         x = self.s1(x)
@@ -289,15 +280,7 @@ class CoAtNet(nn.Module):
         x = self.pool(x).view(-1, x.shape[1])
         x = self.fc(x)
 
-        if self.training:
-            #得到损失函数值
-            batch_label = torch.tensor(batch_label,dtype=float).cuda()
-            loss_fun = nn.CrossEntropyLoss()
-            loss = loss_fun(x,batch_label.long())
-            return loss,x
-        else:
-            #直接返回推理结果
-            return x
+        return x
 
     def _make_layer(self, block, inp, oup, depth, image_size):
         layers = nn.ModuleList([])

@@ -158,17 +158,7 @@ class Sliding_attention_Network(nn.Module):
 
         self.projection = nn.Sequential(nn.LayerNorm(1024),nn.Linear(1024, cfg.num_classes))
     
-    def forward(self,data):
-
-        #------------------预处理(data里面既含有image、label、width、height信息。)-----------------#
-        batchsize = len(data)
-        batch_images = []
-        batch_label = []
-        for i in range(0,batchsize,1):
-            batch_images.append(data[i]["image"])
-            batch_label.append(int(float(data[i]["y"])))
-        batch_images=[image.tolist() for image in batch_images]
-        batch_images_tensor = torch.tensor(batch_images,dtype=torch.float).cuda().clone().detach()
+    def forward(self,batch_images_tensor):
 
         #推理部分
         #time1 = time.time()
@@ -181,15 +171,7 @@ class Sliding_attention_Network(nn.Module):
         out = self.projection(out)
         #print("用时：",time.time()-time1)
 
-        if self.training:
-            #得到损失函数值
-            batch_label = torch.tensor(batch_label,dtype=float).cuda()
-            loss_fun = nn.CrossEntropyLoss()
-            loss = loss_fun(out,batch_label.long())
-            return loss,out
-        else:
-            #直接返回推理结果
-            return out
+        return out
 
 
         

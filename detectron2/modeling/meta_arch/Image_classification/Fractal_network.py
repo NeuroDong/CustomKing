@@ -114,10 +114,10 @@ class BasicBlock3(nn.Module):
         dim3 = int(inplanes/4)
         dim4 = inplanes - dim1 - dim2 - dim3
 
-        self.conv1 = nn.Sequential(conv3x3(inplanes,dim1),nn.BatchNorm2d(dim1),nn.ReLU(dim1))
-        self.conv2 = nn.Sequential(conv3x3(dim1,dim2),nn.BatchNorm2d(dim2),nn.ReLU(dim2))
-        self.conv3 = nn.Sequential(conv3x3(dim1+dim2,dim3),nn.BatchNorm2d(dim3),nn.ReLU(dim3))
-        self.conv4 = nn.Sequential(conv3x3(dim1+dim2+dim3,dim4),nn.BatchNorm2d(dim4),nn.ReLU(dim4))
+        self.conv1 = nn.Sequential(conv3x3(inplanes,dim1),nn.BatchNorm2d(dim1),nn.ReLU(inplace=True))
+        self.conv2 = nn.Sequential(conv3x3(dim1,dim2),nn.BatchNorm2d(dim2),nn.ReLU(inplace=True))
+        self.conv3 = nn.Sequential(conv3x3(dim1+dim2,dim3),nn.BatchNorm2d(dim3),nn.ReLU(inplace=True))
+        self.conv4 = nn.Sequential(conv3x3(dim1+dim2+dim3,dim4),nn.BatchNorm2d(dim4),nn.ReLU(inplace=True))
 
 
     def forward(self, x: Tensor) -> Tensor:
@@ -261,7 +261,7 @@ class Fractal_network(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(dim , cfg.num_classes)
 
-        self.transforms_train = nn.Sequential(transforms.Pad(4),
+        self.transforms_train = nn.Sequential(transforms.Pad([4]),
                         transforms.RandomCrop(32),
                         transforms.RandomHorizontalFlip(),
                         #transforms.Resize(224),
@@ -270,16 +270,7 @@ class Fractal_network(nn.Module):
         self.transforms_evel = nn.Sequential(#transforms.Resize(224),
                         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)))
 
-    def forward(self,data):
-        #------------------预处理(data里面既含有image、label、width、height信息。)-----------------#
-        batchsize = len(data)
-        batch_images = []
-        batch_label = []
-        for i in range(0,batchsize,1):
-            batch_images.append(data[i]["image"])
-            batch_label.append(int(float(data[i]["y"])))
-        batch_images=[image.tolist() for image in batch_images]
-        batch_images_tensor = torch.tensor(batch_images,dtype=torch.float).cuda().clone().detach()
+    def forward(self,batch_images_tensor):
 
         if self.training:
             batch_images_tensor = self.transforms_train(batch_images_tensor)
@@ -296,16 +287,7 @@ class Fractal_network(nn.Module):
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.fc(x)
-
-        if self.training:
-            #得到损失函数值
-            batch_label = torch.tensor(batch_label,dtype=float).cuda()
-            loss_fun = nn.CrossEntropyLoss()
-            loss = loss_fun(x,batch_label.long())
-            return loss,x
-        else:
-            #直接返回推理结果
-            return x
+        return x
 
     def __setitem__(self, str, v):
         if "network"==str:
