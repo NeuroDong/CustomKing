@@ -15,5 +15,3 @@ CustomKing is a framework for machine learning, which is a framework similar to 
 (3) The DatasetCatalog is used to turn the dataset into a pluggable component, which is convenient for directly calling the dataset by name, and is convenient for users to manage and use a large number of datasets.
 
 (4) If users use the framework for a long time, they can write objects such as models, datasets, and loss functions once and for all, and only need to call them directly in the future.
-
-(5) This framework is lighter than Detectron2, and is more suitable for simple tasks such as classification, regression, and calibration. If necessary, you can also add tasks such as target detection and target segmentation by yourself.
