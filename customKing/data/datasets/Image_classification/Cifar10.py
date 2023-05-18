@@ -195,8 +195,3 @@ def load_Cifar10(name,root):
 
 def register_Cifar10(name,root):
     DatasetCatalog.register(name, lambda: load_Cifar10(name,root))
-    
-
-if __name__=="__main__":
-    data = DatasetCatalog.get(name)
-    print(data)
