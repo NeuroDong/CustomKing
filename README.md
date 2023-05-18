@@ -21,6 +21,6 @@ CustomKing is a framework for machine learning, which is a framework similar to 
 # 4. Example
 CustomKing has a built-in classification task as an example, including different series of Resnet models, see customKing/modeling/meta_arch/Image_classification/Resnet.py, and the complete CIFAR-10 dataset, see customKing/data/datasets/Image_classification/Cifar10 .py. See customKing/config/defaults.py for all configuration parameters. Run the example with the following code:
 
-('''
-python python tools/Image_Classification/main.py
-''')
+'''python
+python tools/Image_Classification/main.py
+'''
