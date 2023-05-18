@@ -17,6 +17,7 @@ CustomKing is a framework for machine learning, which is a framework similar to 
 **4)** If users use this framework for a long time, they can use their written models, data sets, loss functions, optimizers, Lr_schedule, etc., once and for all.
 
 # 3. Tutorial
+Please see [doc/CustomKing_User_Guide.pdf](https://github.com/NeuroDong/CustomKing/blob/main/doc/CustomKing_User_Guide.pdf)
 
 # 4. Example
 CustomKing has a built-in classification task as an example, including different series of Resnet models, see customKing/modeling/meta_arch/Image_classification/Resnet.py, and the complete CIFAR-10 dataset, see customKing/data/datasets/Image_classification/Cifar10 .py. See customKing/config/defaults.py for all configuration parameters. Run the example with the following code:
