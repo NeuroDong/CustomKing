@@ -15,3 +15,10 @@ CustomKing是一个机器学习的框架，是用Fvcore写的一个类似于Dete
 **3)** DatasetCatalog用于将数据集变成一个可插拔的组件，方便直接按名称调用数据集，方便用户管理和使用大量的数据集。
 
 **4)** 如果使用者长期使用这个框架，可以一劳永逸地使用自己写入的模型、数据集、损失函数、优化器、Lr_schedule等。
+# 3.教程
+
+# 4.示例
+CustomKing里面内置了一个分类任务作为例子，包含了Resnet不同系列的模型，见customKing/modeling/meta_arch/Image_classification/Resnet.py，和完整的CIFAR-10数据集，见customKing/data/datasets/Image_classification/Cifar10.py。所有配置参数见customKing/config/defaults.py。采用如下代码运行实例即可：
+```python
+python tools/Image_Classification/main.py
+```
