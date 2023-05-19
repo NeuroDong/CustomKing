@@ -1,7 +1,7 @@
 English | [简体中文](https://github.com/dongdongdong1217/Detectron2-All/blob/main/README_ch.md)
 
 # 1. What is CustomKing
-CustomKing is a framework for machine learning, which is a framework similar to Detectron2 written by Fvcore. The differences between CustomKing and Detectron2 are as follows:
+CustomKing is a framework for machine learning, which is a framework similar to [Detectron2](https://github.com/facebookresearch/detectron2) written by [Fvcore](https://github.com/facebookresearch/fvcore). The differences between CustomKing and Detectron2 are as follows:
 
 **1)** Detectron2 is an efficient open-source object detection framework. However, because it only focuses on target detection and segmentation, the framework is difficult to be used by users who only do classification, regression, calibration, and other tasks. Therefore, we stripped the core code of the framework from Detectron2 and named it CustomKing. CustomKing's pursuit is only to provide the framework, and the specific task scenarios are added by the users of CustomKing so that more users can build their own scientific research or engineering frameworks.
 
