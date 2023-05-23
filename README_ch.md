@@ -25,7 +25,7 @@ pip intall -r requirements.txt
 请见[doc/CustomKing_User_Guide.pdf](https://github.com/NeuroDong/CustomKing/blob/main/doc/CustomKing_User_Guide.pdf)
 
 # 5.示例
-CustomKing里面内置了一个分类任务作为例子，包含了Resnet不同系列的模型，见customKing/modeling/meta_arch/Image_classification/Resnet.py，和完整的CIFAR-10数据集，见customKing/data/datasets/Image_classification/Cifar10.py。所有配置参数见customKing/config/defaults.py。采用如下代码运行实例即可：
+CustomKing里面内置了一个分类任务作为例子，包含了Resnet不同系列的模型，见customKing/modeling/meta_arch/Image_classification/Resnet.py，和完整的CIFAR-10数据集，见customKing/data/datasets/Image_classification/Cifar10.py。所有配置参数见customKing/config/defaults.py。采用如下代码运行示例即可：
 ```python
 python tools/Image_Classification/main.py
 ```
